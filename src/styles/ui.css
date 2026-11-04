@@ -59,7 +59,12 @@
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--danger), #ff8a6b);
+  color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: rgba(220, 38, 38, 0.12);
 }
 
 kbd {

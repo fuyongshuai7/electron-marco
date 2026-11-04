@@ -2,6 +2,7 @@ import fsSync from 'node:fs'
 import path from 'node:path'
 import { Menu, Tray, app, nativeImage } from 'electron'
 import log from './core/logger'
+import { mt } from './core/i18n'
 
 /** 開發環境用專案根目錄的 build/，打包後取 resourcesPath 的 extraResource */
 function resolveIcon() {
@@ -31,17 +32,17 @@ export function createTray({ getStatusText, onToggleWindow, onEmergencyStop, onQ
   }
 
   const tray = new Tray(image.resize({ width: 16, height: 16 }))
-  tray.setToolTip('Marco · 鍵鼠自動化')
+  tray.setToolTip(mt('app.trayTooltip'))
 
   const build = () => {
-    const status = getStatusText?.() || '待機'
+    const status = getStatusText?.() || mt('status.idle')
     return Menu.buildFromTemplate([
-      { label: `狀態：${status}`, enabled: false },
+      { label: mt('tray.status', { status }), enabled: false },
       { type: 'separator' },
-      { label: '顯示 / 隱藏視窗', click: () => onToggleWindow?.() },
-      { label: '緊急停止（錄製 / 回放 / 連點）', click: () => onEmergencyStop?.() },
+      { label: mt('tray.toggleWindow'), click: () => onToggleWindow?.() },
+      { label: mt('tray.emergencyStop'), click: () => onEmergencyStop?.() },
       { type: 'separator' },
-      { label: '結束程式', click: () => onQuit?.() },
+      { label: mt('tray.quit'), click: () => onQuit?.() },
     ])
   }
 

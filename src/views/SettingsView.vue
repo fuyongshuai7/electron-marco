@@ -1,15 +1,28 @@
 <template>
   <section class="view">
     <header class="view-header">
-      <h1>設定</h1>
-      <p>快捷鍵、錄製行為與資料存放位置。</p>
+      <h1>{{ $t('settings.title') }}</h1>
+      <p>{{ $t('settings.subtitle') }}</p>
     </header>
 
     <div class="panel">
-      <h2 class="panel-title">全域快捷鍵</h2>
-      <p class="panel-desc">
-        全部採用組合鍵，避免與其他軟體搶用單一功能鍵。點「錄製」後直接按下你要的組合鍵即可。
-      </p>
+      <h2 class="panel-title">{{ $t('settings.language') }}</h2>
+      <div class="segmented">
+        <button
+          v-for="l in locales"
+          :key="l.value"
+          class="seg-item"
+          :class="{ active: currentLocale === l.value }"
+          @click="changeLocale(l.value)"
+        >
+          {{ l.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">{{ $t('settings.hotkeysTitle') }}</h2>
+      <p class="panel-desc">{{ $t('settings.hotkeysDesc') }}</p>
       <ul class="hotkey-list">
         <li v-for="h in rows" :key="h.action">
           <kbd class="kbd-wide">{{ h.label }}</kbd>
@@ -18,13 +31,10 @@
             <span class="hotkey-desc">{{ h.desc }}</span>
           </div>
           <div class="hotkey-actions">
-            <button
-              class="btn btn-ghost btn-sm"
-              @click="toggleCapture(h.action)"
-            >
-              {{ capturing === h.action ? '按下組合鍵…（點此取消）' : '錄製' }}
+            <button class="btn btn-ghost btn-sm" @click="toggleCapture(h.action)">
+              {{ capturing === h.action ? $t('settings.capturing') : $t('settings.captureBtn') }}
             </button>
-            <button class="btn btn-ghost btn-sm" @click="resetOne(h.action)">預設</button>
+            <button class="btn btn-ghost btn-sm" @click="resetOne(h.action)">{{ $t('settings.resetBtn') }}</button>
           </div>
         </li>
       </ul>
@@ -32,7 +42,7 @@
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">錄製行為</h2>
+      <h2 class="panel-title">{{ $t('settings.recordingTitle') }}</h2>
       <label class="switch-row">
         <input
           type="checkbox"
@@ -40,15 +50,13 @@
           @change="update({ recording: { captureMouseMove: $event.target.checked } })"
         />
         <span class="switch-track"></span>
-        <span class="switch-label">錄製滑鼠移動軌跡</span>
+        <span class="switch-label">{{ $t('settings.captureMove') }}</span>
       </label>
-      <p class="hint">
-        開啟後才能回放拖曳、繪圖等操作，但事件數量會大幅增加。建議搭配下方的取樣設定控制檔案大小。
-      </p>
+      <p class="hint">{{ $t('settings.captureHint') }}</p>
 
       <div class="grid">
         <label class="field-inline">
-          <span>取樣間隔（毫秒）</span>
+          <span>{{ $t('settings.throttle') }}</span>
           <input
             class="num-input"
             type="number"
@@ -60,7 +68,7 @@
           />
         </label>
         <label class="field-inline">
-          <span>最小位移（像素）</span>
+          <span>{{ $t('settings.minDist') }}</span>
           <input
             class="num-input"
             type="number"
@@ -75,16 +83,16 @@
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">資料存放</h2>
-      <p class="folder-path">{{ state.folderPath || '（尚未載入）' }}</p>
+      <h2 class="panel-title">{{ $t('settings.dataTitle') }}</h2>
+      <p class="folder-path">{{ state.folderPath || $t('settings.noFolder') }}</p>
       <div class="head-actions">
-        <button class="btn btn-ghost btn-sm" @click="pick">選擇資料夾</button>
-        <button class="btn btn-ghost btn-sm" @click="useDefault">回復預設位置</button>
-        <button class="btn btn-ghost btn-sm" @click="openRecords">開啟資料夾</button>
-        <button class="btn btn-ghost btn-sm" @click="openLogs">開啟日誌</button>
+        <button class="btn btn-ghost btn-sm" @click="pick">{{ $t('settings.pickFolder') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="useDefault">{{ $t('settings.useDefault') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="openRecords">{{ $t('settings.openData') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="openLogs">{{ $t('settings.openLogs') }}</button>
       </div>
       <label class="field-inline spaced">
-        <span>保留備份份數</span>
+        <span>{{ $t('settings.keepBackups') }}</span>
         <input
           class="num-input"
           type="number"
@@ -95,11 +103,11 @@
           @change="update({ persist: { keepBackups: Number($event.target.value) } })"
         />
       </label>
-      <p class="hint">每次寫入 records.json 前會輪替備份（records.json.bak.1 起）。</p>
+      <p class="hint">{{ $t('settings.backupHint') }}</p>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">程式行為</h2>
+      <h2 class="panel-title">{{ $t('settings.behaviorTitle') }}</h2>
       <label class="switch-row">
         <input
           type="checkbox"
@@ -107,7 +115,7 @@
           @change="update({ window: { closeToTray: $event.target.checked } })"
         />
         <span class="switch-track"></span>
-        <span class="switch-label">關閉視窗時縮到托盤</span>
+        <span class="switch-label">{{ $t('settings.closeToTray') }}</span>
       </label>
       <label class="switch-row">
         <input
@@ -116,12 +124,12 @@
           @change="update({ window: { launchAtLogin: $event.target.checked } })"
         />
         <span class="switch-track"></span>
-        <span class="switch-label">開機自動啟動</span>
+        <span class="switch-label">{{ $t('settings.launchAtLogin') }}</span>
       </label>
-      <p class="hint">托盤圖示可顯示目前狀態，並提供「緊急停止」與顯示 / 隱藏視窗。</p>
+      <p class="hint">{{ $t('settings.trayHint') }}</p>
       <div class="head-actions">
-        <button class="btn btn-ghost btn-sm" @click="hideWindow">隱藏到托盤</button>
-        <button class="btn btn-danger btn-sm" @click="doReset">還原全部設定</button>
+        <button class="btn btn-ghost btn-sm" @click="hideWindow">{{ $t('settings.hideToTray') }}</button>
+        <button class="btn btn-danger btn-sm" @click="doReset">{{ $t('settings.resetAll') }}</button>
       </div>
     </div>
   </section>
@@ -129,20 +137,32 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { state } from '../store'
+import { LOCALES } from '../i18n'
+
+const { t, locale } = useI18n()
 
 const api = () => window.electronApi
 
+const locales = LOCALES
+const currentLocale = computed(() => locale.value)
+
+const changeLocale = (value) => {
+  if (value === locale.value) return
+  api()?.settings?.update?.({ ui: { locale: value } })
+}
+
 const settings = computed(() => state.settings || {})
 
-const HOTKEY_DEFS = [
-  { action: 'startRecord', name: '開始錄製', desc: '清空舊記錄並開始捕捉鍵鼠操作' },
-  { action: 'stopRecord', name: '停止錄製', desc: '結束錄製並加入已錄製清單' },
-  { action: 'play', name: '回放', desc: '依回放設定重播目前選取的錄製' },
-  { action: 'stopPlay', name: '停止回放', desc: '中斷回放並放開所有按住的鍵' },
-  { action: 'startAutoClick', name: '開始連點', desc: '以連點頁設定啟動' },
-  { action: 'stopAutoClick', name: '停止連點', desc: '立即中斷連點' },
-  { action: 'emergencyStop', name: '緊急停止', desc: '一次停止錄製 / 回放 / 連點，且不保留本次錄製' },
+const HOTKEY_ACTIONS = [
+  'startRecord',
+  'stopRecord',
+  'play',
+  'stopPlay',
+  'startAutoClick',
+  'stopAutoClick',
+  'emergencyStop',
 ]
 
 const DEFAULT_COMBOS = {
@@ -156,7 +176,7 @@ const DEFAULT_COMBOS = {
 }
 
 const comboText = (combo) => {
-  if (!combo) return '未設定'
+  if (!combo) return t('hotkeys.notSet')
   const parts = []
   if (combo.ctrl) parts.push('Ctrl')
   if (combo.alt) parts.push('Alt')
@@ -167,9 +187,11 @@ const comboText = (combo) => {
 }
 
 const rows = computed(() =>
-  HOTKEY_DEFS.map((h) => ({
-    ...h,
-    label: comboText(settings.value.hotkeys?.[h.action]),
+  HOTKEY_ACTIONS.map((action) => ({
+    action,
+    label: comboText(settings.value.hotkeys?.[action]),
+    name: t(`hotkeys.names.${action}`),
+    desc: t(`hotkeys.descs.${action}`),
   }))
 )
 
@@ -192,7 +214,7 @@ const ensureListener = () => {
   if (unsubscribe) return unsubscribe
   unsubscribe = api()?.hotkeys?.onCaptured?.((payload) => {
     capturing.value = null
-    if (payload?.label) setMsg(`已設定為 ${payload.label}`, 'success')
+    if (payload?.label) setMsg(t('settings.msgCaptured', { label: payload.label }), 'success')
   })
   return unsubscribe
 }
@@ -219,7 +241,7 @@ const resetOne = async (action) => {
     key: parts[parts.length - 1],
   }
   await api()?.hotkeys?.set?.(action, combo)
-  setMsg('已還原為預設組合鍵', 'success')
+  setMsg(t('settings.msgHotkeyReset'), 'success')
 }
 
 const update = async (patch) => {
@@ -232,7 +254,7 @@ const pick = async () => {
 
 const useDefault = async () => {
   await api()?.settings?.update?.({ persist: { folder: '' } })
-  setMsg('已回復預設資料夾', 'success')
+  setMsg(t('settings.msgDefaultFolder'), 'success')
 }
 
 const openRecords = () => api()?.app?.openFolder?.('records')
@@ -241,7 +263,7 @@ const hideWindow = () => api()?.window?.hide?.()
 
 const doReset = async () => {
   await api()?.settings?.reset?.()
-  setMsg('設定已還原', 'success')
+  setMsg(t('settings.msgReset'), 'success')
 }
 
 onBeforeUnmount(() => {
@@ -250,6 +272,35 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.seg-item {
+  padding: 7px 18px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-item:hover {
+  color: var(--text);
+}
+
+.seg-item.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #8f7bff);
+}
+
 .hotkey-list {
   list-style: none;
   margin: 0;

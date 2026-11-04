@@ -331,6 +331,22 @@ export function createRecords(notify = () => {}, deps = {}) {
     return true
   }
 
+  function count() {
+    return items.length
+  }
+
+  /** 清空全部錄製（含未儲存），回傳刪除筆數；確認交由呼叫端負責 */
+  function clearAll() {
+    const total = items.length
+    if (!total) return 0
+    items = []
+    selectedId = null
+    emit()
+    persist()
+    syncSelection()
+    return total
+  }
+
   function exportOne(parent, id) {
     const rec = find(id)
     if (!rec) return Promise.resolve({ ok: false, reason: 'missing' })
@@ -414,6 +430,8 @@ export function createRecords(notify = () => {}, deps = {}) {
     removeEvent,
     listEvents,
     remove,
+    count,
+    clearAll,
     exportOne,
     exportAll,
     importOne,

@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { app, dialog, shell } from 'electron'
 import log from './core/logger'
+import { mt } from './core/i18n'
 
 // 統一存放錄製與匯出檔案的資料夾
 const FOLDER_NAME = 'Marco 錄製'
@@ -39,7 +40,7 @@ export function setFolderPath(next) {
 /** 讓使用者挑選資料目錄 */
 export async function pickFolder(parent) {
   const result = await dialog.showOpenDialog(parent || undefined, {
-    title: '選擇錄製存放資料夾',
+    title: mt('dialog.pickFolderTitle'),
     defaultPath: getFolderPath(),
     properties: ['openDirectory', 'createDirectory'],
   })
@@ -89,15 +90,19 @@ export async function loadRecords() {
     const data = await fs.readFile(dbPath(), 'utf8')
     const parsed = JSON.parse(data)
     if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter((r) => r && typeof r.id === 'string' && Array.isArray(r.events))
-      .map((r) => ({
-        id: r.id,
-        name: String(r.name || '未命名'),
-        createdAt: r.createdAt || Date.now(),
-        updatedAt: r.updatedAt || r.createdAt || Date.now(),
-        events: r.events,
-      }))
+    // 舊版可能因雙開寫出重複記錄，載入時按 id 去重（保留較新的一筆）
+    const byId = new Map()
+    for (const r of parsed) {
+      if (!r || typeof r.id !== 'string' || !Array.isArray(r.events)) continue
+      byId.set(r.id, r)
+    }
+    return Array.from(byId.values()).map((r) => ({
+      id: r.id,
+      name: String(r.name || mt('dialog.unnamed')),
+      createdAt: r.createdAt || Date.now(),
+      updatedAt: r.updatedAt || r.createdAt || Date.now(),
+      events: r.events,
+    }))
   } catch {
     return []
   }
@@ -165,7 +170,7 @@ const pickSavePath = async (parent, title, defaultName) => {
 export async function exportRecord(parent, record) {
   const file = await pickSavePath(
     parent,
-    '匯出錄製',
+    mt('dialog.exportTitle'),
     `${safeFileName(record.name)}.json`
   )
   if (!file) return { ok: false, reason: 'canceled' }
@@ -193,7 +198,7 @@ export async function exportAllRecords(parent, records) {
   }
   const file = await pickSavePath(
     parent,
-    '匯出全部錄製',
+    mt('dialog.exportAllTitle'),
     `marco-錄製-${timestamp()}.json`
   )
   if (!file) return { ok: false, reason: 'canceled' }
@@ -222,7 +227,7 @@ export async function exportAllRecords(parent, records) {
 // 匯入單筆錄製或整份列表
 export async function importRecord(parent) {
   const result = await dialog.showOpenDialog(parent || undefined, {
-    title: '匯入錄製',
+    title: mt('dialog.importTitle'),
     filters: [{ name: 'JSON', extensions: ['json'] }],
     properties: ['openFile'],
   })
@@ -243,7 +248,7 @@ export async function importRecord(parent) {
           name: String(r.name || '').trim() || baseName,
         }))
       if (!list.length) {
-        return { ok: false, reason: 'invalid', message: '檔案內沒有可匯入的錄製' }
+        return { ok: false, reason: 'invalid', message: mt('dialog.noImportableRecords') }
       }
       return { ok: true, multiple: true, list, name: baseName }
     }
@@ -251,7 +256,7 @@ export async function importRecord(parent) {
     // 單筆格式
     const events = Array.isArray(parsed) ? parsed : parsed?.events
     if (!Array.isArray(events) || events.length === 0) {
-      return { ok: false, reason: 'invalid', message: '檔案格式不正確或沒有事件' }
+      return { ok: false, reason: 'invalid', message: mt('dialog.badFormat') }
     }
     return { ok: true, multiple: false, events, name: baseName }
   } catch (err) {

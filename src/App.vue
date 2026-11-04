@@ -5,17 +5,17 @@
         <div class="brand-logo">M</div>
         <div class="brand-text">
           <span class="brand-name">Marco</span>
-          <span class="brand-sub">鍵鼠自動化</span>
+          <span class="brand-sub">{{ $t('app.tagline') }}</span>
         </div>
       </div>
 
       <div class="window-controls">
-        <button class="win-btn" title="最小化" @click="minimize">
+        <button class="win-btn" :title="$t('win.minimize')" @click="minimize">
           <svg viewBox="0 0 12 12" aria-hidden="true">
             <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
           </svg>
         </button>
-        <button class="win-btn win-close" title="關閉" @click="close">
+        <button class="win-btn win-close" :title="$t('win.close')" @click="close">
           <svg viewBox="0 0 12 12" aria-hidden="true">
             <path
               d="M3 3l6 6M9 3l-6 6"
@@ -61,36 +61,37 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import RecordView from './views/RecordView.vue'
 import AutoClickView from './views/AutoClickView.vue'
 import SettingsView from './views/SettingsView.vue'
 import { state } from './store'
+import { applyLocale } from './i18n'
 
-const menus = [
-  {
-    key: 'record',
-    label: '錄製',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`,
-  },
-  {
-    key: 'autoclick',
-    label: '連點',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v7l-2 3h4l1 6"/><path d="M14 4v6h2a2 2 0 0 1 0 4h-2l1 6"/></svg>`,
-  },
-  {
-    key: 'settings',
-    label: '設定',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M4 12h2M18 12h2M12 4v2M12 18v2M6.5 6.5l1.5 1.5M16 16l1.5 1.5M17.5 6.5L16 8M8 16l-1.5 1.5"/></svg>`,
-  },
-]
+const { t } = useI18n()
+
+const menuIcons = {
+  record: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`,
+  autoclick: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v7l-2 3h4l1 6"/><path d="M14 4v6h2a2 2 0 0 1 0 4h-2l1 6"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M4 12h2M18 12h2M12 4v2M12 18v2M6.5 6.5l1.5 1.5M16 16l1.5 1.5M17.5 6.5L16 8M8 16l-1.5 1.5"/></svg>`,
+}
+
+const menus = computed(() =>
+  ['record', 'autoclick', 'settings'].map((key) => ({
+    key,
+    label: t(`menu.${key}`),
+    icon: menuIcons[key],
+  }))
+)
 
 const statusText = computed(() => {
-  if (state.recording) return '錄製中'
-  if (state.countdown > 0) return `回放倒數 ${state.countdown}s`
-  if (state.playing) return `回放中 ${state.round}/${state.repeat || '∞'}`
-  if (state.autoClickRunning) return '連點中'
-  if (!state.hookReady) return '掛鉤未就緒'
-  return '待機'
+  if (state.recording) return t('status.recording')
+  if (state.countdown > 0) return t('status.playCountdown', { n: state.countdown })
+  if (state.playing)
+    return t('status.playing', { round: state.round, total: state.repeat || t('status.infinite') })
+  if (state.autoClickRunning) return t('status.clicking')
+  if (!state.hookReady) return t('status.hookNotReady')
+  return t('status.idle')
 })
 
 const dotClass = computed(() => {
@@ -137,10 +138,16 @@ onMounted(() => {
   })
 
   api.settings?.onChange?.((next) => {
-    if (next) state.settings = next
+    if (next) {
+      state.settings = next
+      applyLocale(next.ui?.locale)
+    }
   })
   api.settings?.get?.().then((next) => {
-    if (next) state.settings = next
+    if (next) {
+      state.settings = next
+      applyLocale(next.ui?.locale)
+    }
   })
 
   api.app?.onHookStatus?.((payload) => {

@@ -11,6 +11,11 @@ const keyState = {
 }
 const mouseEventType = { 1: 'left', 2: 'right', 3: 'middle' }
 
+// 回放鍵碼別名：uiohook-napi 原生層無法注入的鍵碼改用等效鍵（見 applyEvent keyboard）
+const REPLAY_KEY_ALIASES = {
+  3612: 28, // NumpadEnter → Enter
+}
+
 const DEFAULT_OPTIONS = {
   speed: 1,
   repeat: 1,
@@ -97,7 +102,10 @@ export function createMarco(notify = () => {}, deps = {}) {
 
   /* ---------- 錄製 ---------- */
   function push(e, kind) {
-    recordingCollection.push(cloneEvent(e, kind))
+    // 統一用本程序時鐘蓋掉鉤子的 time：Windows 上鉤子給的是開機毫秒，
+    // seedStartPosition 卻用 Date.now()（epoch 毫秒），兩種時鐘混用會讓
+    // 回放排程把所有事件塌縮到 0、一次全部爆發。全部改用 Date.now() 即一致。
+    recordingCollection.push({ ...cloneEvent(e, kind), time: Date.now() })
     emit(false)
   }
 
@@ -114,17 +122,17 @@ export function createMarco(notify = () => {}, deps = {}) {
 
   function recordMove(e) {
     if (!options.captureMouseMove) return
+    const now = Date.now()
     if (lastMove) {
-      if (e.time - lastMove.time < options.moveThrottleMs) return
+      if (now - lastMove.time < options.moveThrottleMs) return
       if (Math.hypot(e.x - lastMove.x, e.y - lastMove.y) < options.moveMinDistance) return
     }
-    lastMove = { x: e.x, y: e.y, time: e.time }
+    lastMove = { x: e.x, y: e.y, time: now }
     push(e, 'move')
   }
 
   function handleKeyDown(e) {
     if (!isRecording) return
-    if (e.keycode != null) heldKeys.delete(e.keycode)
     push(e, 'keyboard')
   }
 
@@ -137,7 +145,7 @@ export function createMarco(notify = () => {}, deps = {}) {
     if (!isRecording) return
     if (kind === 'move') return recordMove(e)
     push(e, kind)
-    lastMove = { x: e.x, y: e.y, time: e.time }
+    lastMove = { x: e.x, y: e.y, time: Date.now() }
   }
 
   /** 快捷鍵觸發時，把已經被錄進去的修飾鍵移除，避免腳本裡出現半截組合鍵 */
@@ -158,8 +166,11 @@ export function createMarco(notify = () => {}, deps = {}) {
 
   function startRecord() {
     if (isRecording || isPlaying) return false
-    isRecording = true
+    // 若回放倒數計時還在跑，必須清掉，否則倒數結束會在錄製途中開始回放
+    clearIntervalSafe(countdownTimer)
+    countdownTimer = null
     countdownLeft = 0
+    isRecording = true
     round = 0
     index = 0
     recordingCollection.length = 0
@@ -208,9 +219,13 @@ export function createMarco(notify = () => {}, deps = {}) {
       case 'keyboard': {
         const state = keyState[item.type]
         if (!state) return
-        uIOhook.keyToggle(item.keycode, state)
-        if (state === 'down') heldKeys.add(item.keycode)
-        else heldKeys.delete(item.keycode)
+        // uiohook-napi 原生層在鉤子運行時無法注入 NumpadEnter（0x0E1C 缺掃描碼
+        // 映射，會印 "Unable to lookup scancode" 並靜默丟棄事件），實測全表僅此一鍵。
+        // 回放時改用等效的主 Enter，錄製資料仍保留原始鍵碼。
+        const kc = REPLAY_KEY_ALIASES[item.keycode] ?? item.keycode
+        uIOhook.keyToggle(kc, state)
+        if (state === 'down') heldKeys.add(kc)
+        else heldKeys.delete(kc)
         break
       }
       case 'mouse': {
@@ -230,7 +245,10 @@ export function createMarco(notify = () => {}, deps = {}) {
         break
       }
       case 'wheel': {
-        robot.scrollMouse(0, (item.amount || 0) * (item.rotation || 1) * -1)
+        const amount = (item.amount || 0) * (item.rotation || 1) * -1
+        // direction 3 = 垂直、4 = 水平（傾斜滾輪）
+        if (item.direction === 4) robot.scrollMouse(amount, 0)
+        else robot.scrollMouse(0, amount)
         break
       }
       default:

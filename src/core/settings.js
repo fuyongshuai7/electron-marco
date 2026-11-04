@@ -95,6 +95,10 @@ export const DEFAULTS = {
     launchAtLogin: false,
     height: 640,
   },
+  ui: {
+    // 介面語言：zh-Hant（繁體中文）或 en（English）
+    locale: 'zh-Hant',
+  },
   autoClick: {
     interval: 100,
     button: 'left',
@@ -186,6 +190,9 @@ const sanitize = (raw) => {
   w.closeToTray = !!w.closeToTray
   w.launchAtLogin = !!w.launchAtLogin
   w.height = Math.round(num(w.height, 460, 4000, DEFAULTS.window.height))
+
+  const u = next.ui
+  u.locale = u.locale === 'en' || u.locale === 'zh-Hant' ? u.locale : DEFAULTS.ui.locale
 
   const a = next.autoClick
   a.interval = Math.round(num(a.interval, 10, 3600000, DEFAULTS.autoClick.interval))

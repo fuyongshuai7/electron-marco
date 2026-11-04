@@ -39,20 +39,27 @@ export function comboLabel(combo) {
   return parts.join(' + ')
 }
 
-export function comboFromEvent(e) {
+export function comboFromEvent(e, held = {}) {
   return {
-    ctrl: !!e.ctrlKey,
-    alt: !!e.altKey,
-    shift: !!e.shiftKey,
-    meta: !!e.metaKey,
+    ctrl: !!e.ctrlKey || !!held.ctrl,
+    alt: !!e.altKey || !!held.alt,
+    shift: !!e.shiftKey || !!held.shift,
+    meta: !!e.metaKey || !!held.meta,
     key: keyNameOf(e.keycode),
   }
 }
 
-function sameCombo(e, combo) {
+/**
+ * 判斷事件是否符合組合鍵。
+ * 修飾鍵狀態同時看事件旗標與外部追蹤（held）：libuiohook 在鉤子啟動後的
+ * 第一次按鍵序列會回報失效的修飾鍵掩碼（ctrlKey/altKey 全為 false），
+ * 導致啟動後的第一個快捷鍵被靜默吞掉，因此用钩子流中追蹤的按下狀態兜底。
+ */
+function sameCombo(e, combo, held = {}) {
   if (!combo) return false
   for (const name of MODIFIERS) {
-    if (!!e[FLAG_OF[name]] !== !!combo[name]) return false
+    const active = !!e[FLAG_OF[name]] || !!held[name]
+    if (active !== !!combo[name]) return false
   }
   const code = keyCodeOf(combo.key)
   return code != null && code === e.keycode
@@ -64,12 +71,13 @@ function sameCombo(e, combo) {
  * - 提供 capture 模式，讓設定頁可以用真實按鍵錄製（而非手動選字）
  * - 記錄被快捷鍵「吃掉」的按鍵，錄製時不會把快捷鍵本身寫進腳本
  */
-export function createHotkeyManager({ getBindings, onCaptured } = {}) {
+export function createHotkeyManager({ getBindings, getHeldModifiers, onCaptured } = {}) {
   const pressed = new Set()
   const consumed = new Set()
   let capturing = false
 
   const bindings = () => getBindings?.() || {}
+  const held = () => getHeldModifiers?.() || {}
 
   const markConsumed = (combo, code) => {
     for (const modCode of comboModifierCodes(combo)) consumed.add(modCode)
@@ -84,7 +92,7 @@ export function createHotkeyManager({ getBindings, onCaptured } = {}) {
     if (capturing) {
       // 修飾鍵本身不作為組合鍵的主鍵
       if (repeated || isModifierCode(code)) return null
-      const combo = comboFromEvent(e)
+      const combo = comboFromEvent(e, held())
       capturing = false
       onCaptured?.(combo)
       return { type: 'capture', combo }
@@ -94,7 +102,7 @@ export function createHotkeyManager({ getBindings, onCaptured } = {}) {
     if (repeated) return null
 
     for (const [action, combo] of Object.entries(bindings())) {
-      if (sameCombo(e, combo)) {
+      if (sameCombo(e, combo, held())) {
         markConsumed(combo, code)
         return { type: 'action', action, combo }
       }

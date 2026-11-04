@@ -1,13 +1,12 @@
 <template>
   <section class="view">
     <header class="view-header">
-      <h1>錄製與回放</h1>
-      <p>使用組合快捷鍵錄製鍵盤與滑鼠操作，並依設定自動回放。</p>
+      <h1>{{ $t('record.title') }}</h1>
+      <p>{{ $t('record.subtitle') }}</p>
     </header>
 
     <div v-if="!state.hookReady" class="panel warn-panel">
-      全域掛鉤尚未就緒{{ state.hookNeedPermission ? '（請到系統設定授予「輔助使用 / 輸入監視」權限）' : '' }}，
-      快捷鍵可能沒有反應。
+      {{ $t('record.hookWarn', { perm: state.hookNeedPermission ? $t('record.hookPerm') : '' }) }}
     </div>
 
     <div class="panel status-panel">
@@ -21,27 +20,29 @@
       <div class="stats">
         <div class="stat">
           <span class="stat-value">{{ state.count }}</span>
-          <span class="stat-label">回放目標事件</span>
+          <span class="stat-label">{{ $t('record.statTarget') }}</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{{ state.recording ? 'ON' : 'OFF' }}</span>
-          <span class="stat-label">錄製開關</span>
+          <span class="stat-value">{{ state.recording ? $t('record.on') : $t('record.off') }}</span>
+          <span class="stat-label">{{ $t('record.statSwitch') }}</span>
         </div>
         <div class="stat">
           <span class="stat-value">{{ roundLabel }}</span>
-          <span class="stat-label">回放進度</span>
+          <span class="stat-label">{{ $t('record.statProgress') }}</span>
         </div>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2 class="panel-title">回放設定</h2>
-        <button class="btn btn-ghost btn-sm" @click="state.activeMenu = 'settings'">快捷鍵設定</button>
+        <h2 class="panel-title">{{ $t('record.playbackTitle') }}</h2>
+        <button class="btn btn-ghost btn-sm" @click="state.activeMenu = 'settings'">
+          {{ $t('record.hotkeySettings') }}
+        </button>
       </div>
       <div class="grid">
         <label class="field-inline">
-          <span>速度倍率</span>
+          <span>{{ $t('record.speed') }}</span>
           <div class="stepper">
             <input
               v-model.number="form.speed"
@@ -52,12 +53,12 @@
               @change="commitPlayback"
             />
             <div class="stepper-actions">
-              <button type="button" aria-label="增加" @click="step('speed', 0.1)">
+              <button type="button" aria-label="+" @click="step('speed', 0.1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
               </button>
-              <button type="button" aria-label="減少" @click="step('speed', -0.1)">
+              <button type="button" aria-label="-" @click="step('speed', -0.1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
@@ -67,16 +68,16 @@
         </label>
 
         <label class="field-inline">
-          <span>回放次數</span>
+          <span>{{ $t('record.repeat') }}</span>
           <div class="stepper">
             <input v-model.number="form.repeat" type="number" min="0" step="1" @change="commitPlayback" />
             <div class="stepper-actions">
-              <button type="button" aria-label="增加" @click="step('repeat', 1)">
+              <button type="button" aria-label="+" @click="step('repeat', 1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
               </button>
-              <button type="button" aria-label="減少" @click="step('repeat', -1)">
+              <button type="button" aria-label="-" @click="step('repeat', -1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
@@ -86,16 +87,16 @@
         </label>
 
         <label class="field-inline">
-          <span>起始倒數（秒）</span>
+          <span>{{ $t('record.countdown') }}</span>
           <div class="stepper">
             <input v-model.number="form.countdown" type="number" min="0" max="30" step="1" @change="commitPlayback" />
             <div class="stepper-actions">
-              <button type="button" aria-label="增加" @click="step('countdown', 1)">
+              <button type="button" aria-label="+" @click="step('countdown', 1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
               </button>
-              <button type="button" aria-label="減少" @click="step('countdown', -1)">
+              <button type="button" aria-label="-" @click="step('countdown', -1)">
                 <svg viewBox="0 0 10 6" aria-hidden="true">
                   <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
@@ -105,7 +106,7 @@
         </label>
 
         <label class="field-inline">
-          <span>時間抖動（%）</span>
+          <span>{{ $t('record.jitter') }}</span>
           <input
             v-model.number="form.jitter"
             class="range"
@@ -121,16 +122,14 @@
         <label class="switch">
           <input type="checkbox" v-model="form.smoothMouse" @change="commitPlayback" />
           <span class="switch-track"></span>
-          <span class="switch-label">平滑移動滑鼠</span>
+          <span class="switch-label">{{ $t('record.smoothMouse') }}</span>
         </label>
       </div>
-      <p class="panel-desc">
-        回放次數填 0 表示無限循環；抖動會在每個事件間隔上疊加隨機誤差，降低被偵測為機械操作的機率。
-      </p>
+      <p class="panel-desc">{{ $t('record.playbackDesc') }}</p>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">快捷鍵</h2>
+      <h2 class="panel-title">{{ $t('record.hotkeysTitle') }}</h2>
       <ul class="hotkey-list">
         <li v-for="h in hotkeyRows" :key="h.action">
           <kbd class="kbd-wide">{{ h.label }}</kbd>
@@ -140,37 +139,34 @@
           </div>
         </li>
       </ul>
-      <p class="panel-desc">
-        錄製與回放由全域組合鍵觸發；連點的快捷鍵請見「連點」頁，所有組合鍵都可在「設定」頁修改。
-      </p>
+      <p class="panel-desc">{{ $t('record.hotkeysDesc') }}</p>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2 class="panel-title">已錄製</h2>
+        <h2 class="panel-title">{{ $t('record.recordsTitle') }}</h2>
         <div class="head-actions">
-          <input v-model="state.search" class="search" type="search" placeholder="搜尋名稱" />
+          <input v-model="state.search" class="search" type="search" :placeholder="$t('record.search')" />
           <button class="btn btn-ghost btn-sm" @click="doMerge" :disabled="mergeIds.length < 2">
-            合併 ({{ mergeIds.length }})
+            {{ $t('record.merge', { n: mergeIds.length }) }}
           </button>
-          <button class="btn btn-ghost btn-sm" @click="openFolder">開啟資料夾</button>
-          <button class="btn btn-ghost btn-sm" :disabled="busy" @click="doImport">匯入</button>
+          <button class="btn btn-ghost btn-sm" @click="openFolder">{{ $t('record.openFolder') }}</button>
+          <button class="btn btn-ghost btn-sm" :disabled="busy" @click="doImport">{{ $t('record.import') }}</button>
           <button class="btn btn-ghost btn-sm" :disabled="state.records.length === 0" @click="doExportAll">
-            匯出全部
+            {{ $t('record.exportAll') }}
           </button>
-          <button
-            class="btn btn-ghost btn-sm"
-            :disabled="!hasUnsaved"
-            @click="saveAll"
-          >
-            全部儲存 ({{ unsavedCount }})
+          <button class="btn btn-ghost btn-sm" :disabled="!hasUnsaved" @click="saveAll">
+            {{ $t('record.saveAll', { n: unsavedCount }) }}
+          </button>
+          <button class="btn btn-ghost btn-sm btn-danger" :disabled="state.records.length === 0 || busy" @click="doClearAll">
+            {{ $t('record.clearAll') }}
           </button>
         </div>
       </div>
       <p class="panel-desc">
-        錄製結束後會加入下方清單；點選可切換為回放目標，拖動左側圓點可調整順序。
+        {{ $t('record.recordsDescLine1') }}
         <br />
-        按「儲存」才會寫入本機資料夾。
+        {{ $t('record.recordsDescLine2') }}
       </p>
 
       <ul v-if="filtered.length" class="record-list">
@@ -186,7 +182,7 @@
         >
           <span
             class="rec-grip"
-            title="拖曳調整順序"
+            :title="$t('record.gripTip')"
             draggable="true"
             @click.stop
             @dragstart.stop="dragId = r.id"
@@ -207,9 +203,10 @@
             <template v-else>
               <span class="rec-name">{{ r.name }}</span>
               <span class="rec-meta">
-                {{ r.count }} 個事件 · {{ formatDuration(r.duration) }} · {{ formatTime(r.updatedAt) }}
+                {{ r.count }} {{ $t('record.eventCount') }} · {{ formatDuration(r.duration) }} ·
+                {{ formatTime(r.updatedAt) }}
                 <span class="tag" :class="r.saved ? 'tag-saved' : 'tag-temp'">
-                  {{ r.saved ? '已儲存' : '未儲存' }}
+                  {{ r.saved ? $t('record.saved') : $t('record.unsaved') }}
                 </span>
               </span>
             </template>
@@ -220,22 +217,24 @@
               class="rec-check"
               type="checkbox"
               :checked="mergeIds.includes(r.id)"
-              title="選取以合併"
+              :title="$t('record.mergePickTip')"
               @change="toggleMerge(r.id)"
               @click.stop
             />
-            <button v-if="!r.saved" class="icon-btn primary" title="儲存到本機" @click="saveRecord(r.id)">
-              儲存
+            <button v-if="!r.saved" class="icon-btn primary" :title="$t('record.storeLocal')" @click="saveRecord(r.id)">
+              {{ $t('record.storeLocal') }}
             </button>
-            <button class="icon-btn" title="匯出並選擇存放位置" @click="exportRecord(r.id)">匯出</button>
-            <button class="icon-btn" title="建立複本" @click="duplicate(r.id)">複本</button>
-            <button class="icon-btn" title="重新命名" @click="startRename(r)">✎</button>
-            <button class="icon-btn danger" title="刪除" @click="removeRecord(r)">✕</button>
+            <button class="icon-btn" :title="$t('record.exportTip')" @click="exportRecord(r.id)">
+              {{ $t('record.exportBtn') }}
+            </button>
+            <button class="icon-btn" :title="$t('record.duplicateTip')" @click="duplicate(r.id)">✚</button>
+            <button class="icon-btn" title="✎" @click="startRename(r)">✎</button>
+            <button class="icon-btn danger" title="✕" @click="removeRecord(r)">✕</button>
           </div>
         </li>
       </ul>
       <p v-else class="empty">
-        {{ state.search ? '沒有符合的錄製。' : '尚無錄製，按下錄製快捷鍵開始，結束後會出現在這裡。' }}
+        {{ state.search ? $t('record.emptySearch') : $t('record.emptyNone') }}
       </p>
 
       <p v-if="state.folderPath" class="folder-path">{{ state.folderPath }}</p>
@@ -244,25 +243,29 @@
 
     <div class="panel" v-if="state.selectedId">
       <div class="panel-head">
-        <h2 class="panel-title">事件編輯</h2>
+        <h2 class="panel-title">{{ $t('record.editorTitle') }}</h2>
         <div class="head-actions">
           <label class="mini-field">
-            去掉開頭
+            {{ $t('record.trimHead') }}
             <input v-model.number="headMs" type="number" min="0" step="100" />
-            ms
+            {{ $t('record.ms') }}
           </label>
-          <button class="btn btn-ghost btn-sm" @click="applyTrim">套用裁剪</button>
+          <button class="btn btn-ghost btn-sm" @click="applyTrim">{{ $t('record.applyTrim') }}</button>
         </div>
       </div>
       <p class="panel-desc">
-        共 {{ eventsTotal }} 個事件{{ eventsTruncated ? `（僅顯示前 ${events.length} 筆）` : '' }}。
-        可移除多餘事件，或把某個事件設為回放起點。
+        {{
+          $t('record.editorDesc', {
+            total: eventsTotal,
+            trunc: eventsTruncated ? $t('record.editorTrunc', { n: events.length }) : '',
+          })
+        }}
       </p>
       <div class="head-actions tail-row">
         <label class="mini-field">
-          去掉結尾
+          {{ $t('record.trimTail') }}
           <input v-model.number="tailMs" type="number" min="0" step="100" />
-          ms
+          {{ $t('record.ms') }}
         </label>
       </div>
 
@@ -271,11 +274,11 @@
           <span class="ev-offset">{{ ev.offset }} ms</span>
           <span class="ev-kind" :class="`ev-${ev.kind}`">{{ kindLabel(ev.kind) }}</span>
           <span class="ev-detail">{{ eventDetail(ev) }}</span>
-          <span class="ev-state">{{ ev.down ? '按下' : '放開' }}</span>
+          <span class="ev-state">{{ ev.down ? $t('record.pressDown') : $t('record.pressUp') }}</span>
           <div class="ev-actions">
-            <button class="icon-btn" title="刪除此事件" @click="removeEvent(ev.index)">✕</button>
-            <button class="icon-btn" title="從此事件開始（丟棄前面）" @click="trimBefore(ev.index)">↧</button>
-            <button class="icon-btn danger" title="刪到此為止（含後面全部）" @click="truncateAt(ev.index)">⇥</button>
+            <button class="icon-btn" :title="$t('record.evDeleteTip')" @click="removeEvent(ev.index)">✕</button>
+            <button class="icon-btn" :title="$t('record.evStartTip')" @click="trimBefore(ev.index)">↧</button>
+            <button class="icon-btn danger" :title="$t('record.evCutTip')" @click="truncateAt(ev.index)">⇥</button>
           </div>
         </li>
       </ul>
@@ -285,16 +288,19 @@
 
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { state } from '../store'
+
+const { t } = useI18n()
 
 const recApi = () => window.electronApi?.records
 const api = () => window.electronApi
 
 const statusText = computed(() => {
-  if (state.recording) return '錄製中'
-  if (state.countdown > 0) return `倒數 ${state.countdown}s`
-  if (state.playing) return '回放中'
-  return '待機'
+  if (state.recording) return t('status.recording')
+  if (state.countdown > 0) return t('status.playCountdown', { n: state.countdown })
+  if (state.playing) return t('status.playing', { round: state.round, total: state.repeat || t('status.infinite') })
+  return t('status.idle')
 })
 
 const statusClass = computed(() => {
@@ -304,27 +310,21 @@ const statusClass = computed(() => {
 })
 
 const statusHint = computed(() => {
-  if (state.recording) return '正在記錄鍵盤與滑鼠操作，按下停止錄製快捷鍵結束'
-  if (state.countdown > 0) return '準備開始回放，可按下「停止回放」取消'
-  if (state.playing) return '正在回放腳本，按下停止回放快捷鍵中斷'
-  return '按下開始錄製快捷鍵，錄製完成後按回放快捷鍵重播'
+  if (state.recording) return t('record.statusHint.recording')
+  if (state.countdown > 0) return t('record.statusHint.countdown')
+  if (state.playing) return t('record.statusHint.playing')
+  return t('record.statusHint.idle')
 })
 
 const roundLabel = computed(() => {
-  if (!state.round) return '—'
-  return `${state.round}/${state.repeat || '∞'}`
+  if (!state.round) return t('record.dash')
+  return `${state.round}/${state.repeat || t('status.infinite')}`
 })
 
-const HOTKEY_DEFS = [
-  { action: 'startRecord', name: '開始錄製', desc: '清空舊記錄並開始捕捉鍵鼠操作' },
-  { action: 'stopRecord', name: '停止錄製', desc: '結束錄製並加入已錄製清單' },
-  { action: 'play', name: '回放', desc: '依回放設定重播目前選取的錄製' },
-  { action: 'stopPlay', name: '停止回放', desc: '立即中斷目前正在進行的回放' },
-  { action: 'emergencyStop', name: '緊急停止', desc: '停止錄製 / 回放 / 連點並放開所有按鍵，且不保留錄製' },
-]
+const HOTKEY_ACTIONS = ['startRecord', 'stopRecord', 'play', 'stopPlay', 'emergencyStop']
 
 const comboText = (combo) => {
-  if (!combo) return '未設定'
+  if (!combo) return t('hotkeys.notSet')
   const parts = []
   if (combo.ctrl) parts.push('Ctrl')
   if (combo.alt) parts.push('Alt')
@@ -335,9 +335,11 @@ const comboText = (combo) => {
 }
 
 const hotkeyRows = computed(() =>
-  HOTKEY_DEFS.map((h) => ({
-    ...h,
-    label: comboText(state.settings?.hotkeys?.[h.action]),
+  HOTKEY_ACTIONS.map((action) => ({
+    action,
+    label: comboText(state.settings?.hotkeys?.[action]),
+    name: t(`hotkeys.names.${action}`),
+    desc: t(`hotkeys.descs.${action}`),
   }))
 )
 
@@ -425,7 +427,7 @@ const formatDuration = (ms) => {
 
 const selectRecord = async (id) => {
   if (state.recording || state.playing) {
-    setMsg('錄製或回放進行中，無法切換', 'warn', 2500)
+    setMsg(t('record.msgBusy', { action: t('record.actionSwitch') }), 'warn', 2500)
     return
   }
   await recApi()?.select(id)
@@ -433,42 +435,52 @@ const selectRecord = async (id) => {
 
 const saveRecord = async (id) => {
   const ok = await recApi()?.save(id)
-  setMsg(ok ? '已儲存到本機' : '儲存失敗', ok ? 'success' : 'error', 2500)
+  setMsg(ok ? t('record.msgSaved') : t('record.msgSaveFail'), ok ? 'success' : 'error', 2500)
 }
 
 const saveAll = async () => {
   const n = await recApi()?.saveAll()
-  setMsg(n ? `已儲存 ${n} 筆錄製` : '沒有需要儲存的錄製', n ? 'success' : 'info', 2500)
+  setMsg(n ? t('record.msgSaveAll', { n }) : t('record.msgNothingToSave'), n ? 'success' : 'info', 2500)
+}
+
+const doClearAll = async () => {
+  if (state.recording || state.playing) {
+    setMsg(t('record.msgBusy', { action: t('record.clearAll') }), 'warn')
+    return
+  }
+  const r = await recApi()?.clear()
+  if (!r) return
+  if (r.ok) setMsg(t('record.msgClearedAll', { count: r.count }), 'success')
 }
 
 const exportRecord = async (id) => {
   const r = await recApi()?.export(id)
   if (!r) return
-  if (r.ok) setMsg(`已匯出「${r.name}」共 ${r.count} 個事件`, 'success')
-  else if (r.reason !== 'canceled') setMsg(`匯出失敗：${r.message || ''}`, 'error')
+  if (r.ok) setMsg(t('record.msgExportedOne', { name: r.name, count: r.count }), 'success')
+  else if (r.reason !== 'canceled') setMsg(t('record.msgExportFail', { msg: r.message || '' }), 'error')
 }
 
 const doExportAll = async () => {
   const r = await recApi()?.exportAll()
   if (!r) return
-  if (r.ok) setMsg(`已匯出 ${r.count} 筆錄製到 ${r.path}`, 'success', 5000)
-  else if (r.reason === 'empty') setMsg('清單是空的，沒有可匯出的錄製', 'warn')
-  else if (r.reason !== 'canceled') setMsg(`匯出失敗：${r.message || ''}`, 'error')
+  if (r.ok) setMsg(t('record.msgExportedAll', { count: r.count, path: r.path }), 'success', 5000)
+  else if (r.reason === 'empty') setMsg(t('record.msgListEmpty'), 'warn')
+  else if (r.reason !== 'canceled') setMsg(t('record.msgExportFail', { msg: r.message || '' }), 'error')
 }
 
 const removeRecord = async (r) => {
   if (state.recording || state.playing) {
-    setMsg('錄製或回放進行中，無法刪除', 'warn', 2500)
+    setMsg(t('record.msgBusy', { action: t('record.actionDelete') }), 'warn', 2500)
     return
   }
   await recApi()?.remove(r.id)
   mergeIds.value = mergeIds.value.filter((id) => id !== r.id)
-  setMsg(`已刪除「${r.name}」`, 'info', 2500)
+  setMsg(t('record.msgDeleted', { name: r.name }), 'info', 2500)
 }
 
 const duplicate = async (id) => {
   const ok = await recApi()?.duplicate(id)
-  setMsg(ok ? '已建立複本' : '建立複本失敗', ok ? 'success' : 'error', 2500)
+  setMsg(ok ? t('record.msgDuplicated') : t('record.msgDupFail'), ok ? 'success' : 'error', 2500)
 }
 
 const toggleMerge = (id) => {
@@ -482,7 +494,7 @@ const doMerge = async () => {
   const order = state.records.filter((r) => mergeIds.value.includes(r.id)).map((r) => r.id)
   const ok = await recApi()?.merge(order)
   mergeIds.value = []
-  setMsg(ok ? '已合併為單筆錄製' : '合併失敗', ok ? 'success' : 'error', 2500)
+  setMsg(ok ? t('record.msgMerged') : t('record.msgMergeFail'), ok ? 'success' : 'error', 2500)
 }
 
 /* ---------- 拖曳排序 ---------- */
@@ -519,7 +531,7 @@ const commitRename = async () => {
   editingId.value = null
   if (!name || name === state.records.find((r) => r.id === id)?.name) return
   await recApi()?.rename(id, name)
-  setMsg('已重新命名', 'success', 2000)
+  setMsg(t('record.msgRenamed'), 'success', 2000)
 }
 
 const cancelRename = () => {
@@ -532,7 +544,7 @@ const openFolder = async () => {
 
 const doImport = async () => {
   if (state.recording || state.playing) {
-    setMsg('錄製或回放進行中，無法匯入', 'warn')
+    setMsg(t('record.msgBusy', { action: t('record.actionImport') }), 'warn')
     return
   }
   busy.value = true
@@ -542,12 +554,12 @@ const doImport = async () => {
   if (r.ok) {
     setMsg(
       r.multiple
-        ? `已匯入 ${r.count} 筆錄製，共 ${r.events} 個事件`
-        : `已匯入「${r.name}」共 ${r.events} 個事件`,
+        ? t('record.msgImportedMulti', { count: r.count, events: r.events })
+        : t('record.msgImportedOne', { name: r.name, events: r.events }),
       'success'
     )
   } else if (r.reason === 'invalid' || r.reason === 'parse') {
-    setMsg(`匯入失敗：${r.message || '檔案格式不正確'}`, 'error', 6000)
+    setMsg(t('record.msgImportFail', { msg: r.message || '' }), 'error', 6000)
   }
 }
 
@@ -559,26 +571,56 @@ const headMs = ref(0)
 const tailMs = ref(0)
 
 const KEY_NAMES = {
-  1: 'Esc', 14: 'Backspace', 15: 'Tab', 28: 'Enter', 57: 'Space', 58: 'CapsLock',
+  1: 'Esc',
+  14: 'Backspace',
+  15: 'Tab',
+  28: 'Enter',
+  57: 'Space',
+  58: 'CapsLock',
+  69: 'NumLock',
+  70: 'ScrollLock',
+  71: '數字7',
+  72: '數字8',
+  73: '數字9',
+  74: '數字-',
+  75: '數字4',
+  76: '數字5',
+  77: '數字6',
+  78: '數字+',
+  79: '數字1',
+  80: '數字2',
+  81: '數字3',
+  82: '數字0',
+  83: '數字.',
+  3612: 'Enter（數字鍵盤）',
+  3613: 'Ctrl（右）',
+  3637: '數字/',
+  3639: 'PrintScreen',
+  3640: 'Alt（右）',
+  3655: 'Home',
+  3657: 'PageUp',
+  3663: 'End',
+  3665: 'PageDown',
+  3666: 'Insert',
+  3667: 'Delete',
 }
 
 const keyLabel = (code) => {
-  if (!code) return '—'
+  if (!code) return t('record.dash')
   if (KEY_NAMES[code]) return KEY_NAMES[code]
   if (code >= 59 && code <= 68) return `F${code - 58}`
   if (code >= 88 && code <= 107) return `F${code - 76}`
   return `Key(${code})`
 }
 
-const kindLabel = (kind) =>
-  ({ keyboard: '鍵盤', mouse: '滑鼠', wheel: '滾輪', move: '移動' }[kind] || kind)
+const kindLabel = (kind) => t(`record.kind${kind.charAt(0).toUpperCase()}${kind.slice(1)}`)
 
 const eventDetail = (ev) => {
   if (ev.kind === 'keyboard') return keyLabel(ev.keycode)
   if (ev.kind === 'wheel') return `amount ${ev.amount} / rotation ${ev.rotation}`
-  const btn = { 1: '左鍵', 2: '右鍵', 3: '中鍵' }[ev.button] || ''
-  const pos = `(${ev.x}, ${ev.y})`
-  return `${pos}${ev.kind === 'mouse' && btn ? ` · ${btn}` : ''}`
+  const btnKey = { 1: 'btnLeft', 2: 'btnRight', 3: 'btnMiddle' }[ev.button]
+  const btn = btnKey ? ` · ${t(`record.${btnKey}`)}` : ''
+  return `(${ev.x}, ${ev.y})${ev.kind === 'mouse' ? btn : ''}`
 }
 
 const loadEvents = async (id) => {
@@ -614,13 +656,13 @@ const removeEvent = async (index) => {
 
 const trimBefore = async (index) => {
   const ok = await recApi()?.trimBefore(state.selectedId, index)
-  setMsg(ok ? '已重設起點' : '無法從此事件開始', ok ? 'success' : 'warn', 2500)
+  setMsg(ok ? t('record.msgStartSet') : t('record.msgStartFail'), ok ? 'success' : 'warn', 2500)
   if (ok) loadEvents(state.selectedId)
 }
 
 const truncateAt = async (index) => {
   const ok = await recApi()?.truncateAt(state.selectedId, index)
-  setMsg(ok ? '已裁剪尾段' : '無法裁剪', ok ? 'success' : 'warn', 2500)
+  setMsg(ok ? t('record.msgTailTrimmed') : t('record.msgTailFail'), ok ? 'success' : 'warn', 2500)
   if (ok) loadEvents(state.selectedId)
 }
 
@@ -629,7 +671,7 @@ const applyTrim = async () => {
     headMs: Number(headMs.value) || 0,
     tailMs: Number(tailMs.value) || 0,
   })
-  setMsg(ok ? '已套用裁剪' : '沒有任何事件落在裁剪範圍內', ok ? 'success' : 'warn', 3000)
+  setMsg(ok ? t('record.msgTrimmed') : t('record.msgTrimFail'), ok ? 'success' : 'warn', 3000)
   if (ok) loadEvents(state.selectedId)
 }
 </script>

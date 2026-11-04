@@ -8,6 +8,7 @@ import { createRecords } from './records'
 import { pickFolder } from './recordsStore'
 import { createTray } from './tray'
 import log, { installGlobalErrorHandlers, getLogPath } from './core/logger'
+import { mt } from './core/i18n'
 import {
   getSettings,
   updateSettings,
@@ -16,7 +17,7 @@ import {
   setHotkey,
   DEFAULT_HOTKEYS,
 } from './core/settings'
-import { createHotkeyManager, comboLabel } from './core/hotkey'
+import { createHotkeyManager, comboLabel, MODIFIER_CODES, isModifierCode } from './core/hotkey'
 
 if (started) {
   app.quit()
@@ -52,11 +53,11 @@ const createWindow = () => {
   const settings = getSettings()
 
   mainWindow = new BrowserWindow({
-    width: 900,
+    width: 1000,
     height: settings.window.height,
     resizable: true,
-    minWidth: 900,
-    maxWidth: 900,
+    minWidth: 1000,
+    maxWidth: 1000,
     minHeight: 460,
     maximizable: false,
     fullscreenable: false,
@@ -133,12 +134,12 @@ async function requestClose({ force = false } = {}) {
     if (unsaved > 0) {
       const res = await dialog.showMessageBox(mainWindow, {
         type: 'warning',
-        buttons: ['儲存並結束', '不儲存直接結束', '取消'],
+        buttons: [mt('dialog.saveAndQuit'), mt('dialog.quitWithoutSave'), mt('dialog.cancel')],
         defaultId: 0,
         cancelId: 2,
-        title: '尚有未儲存的錄製',
-        message: `有 ${unsaved} 筆錄製尚未儲存，直接結束會遺失。`,
-        detail: '選擇「儲存並結束」會先寫入本機資料夾再關閉。',
+        title: mt('dialog.unsavedTitle'),
+        message: mt('dialog.unsavedMessage', { count: unsaved }),
+        detail: mt('dialog.unsavedDetail'),
       })
       if (res.response === 2) return
       if (res.response === 0) records?.saveAll()
@@ -175,10 +176,24 @@ function applySettings(next = getSettings()) {
 }
 
 const HOTKEY_ACTIONS = {
-  startRecord: () => marco?.startRecord(),
-  stopRecord: () => marco?.stopRecord(),
-  play: () => marco?.play(),
-  stopPlay: () => marco?.stopPlay(),
+  startRecord: () => {
+    const ok = marco?.startRecord()
+    log[ok ? 'info' : 'warn'](`startRecord → ${ok}`)
+  },
+  stopRecord: () => {
+    const ok = marco?.stopRecord()
+    const n = marco?.getEvents().length ?? 0
+    log[ok ? 'info' : 'warn'](`stopRecord → ${ok}, events=${n}`)
+  },
+  play: () => {
+    const ok = marco?.play()
+    const n = marco?.getEvents().length ?? 0
+    log[ok ? 'info' : 'warn'](`play → ${ok}, events=${n}`)
+  },
+  stopPlay: () => {
+    const ok = marco?.stopPlay()
+    log.info(`stopPlay → ${ok}`)
+  },
   startAutoClick: () => autoClick?.start(getSettings().autoClick),
   stopAutoClick: () => autoClick?.stop(),
   emergencyStop: () => emergencyStop(),
@@ -192,16 +207,31 @@ function emergencyStop() {
 }
 
 /* ---------- 全域輸入鉤子 ---------- */
+// 自行追蹤修飾鍵按下狀態：libuiohook 啟動後第一次按鍵的修飾鍵旗標會失效，
+// 這裡的追蹤作為事件旗標的兜底，避免啟動後第一個快捷鍵被吞掉
+const heldModifierCodes = new Set()
+const heldFlags = () => {
+  const flags = { ctrl: false, alt: false, shift: false, meta: false }
+  for (const code of heldModifierCodes) {
+    for (const [name, codes] of Object.entries(MODIFIER_CODES)) {
+      if (codes.includes(code)) flags[name] = true
+    }
+  }
+  return flags
+}
+
 function startHook() {
   try {
     uIOhook.start()
     uiohookReady = true
+    log.info(`hook started at +${Math.round(process.uptime() * 1000)}ms after process start`)
   } catch (err) {
     uiohookReady = false
     log.error('uIOhook 啟動失敗', err)
   }
 
   uIOhook.on('keydown', (e) => {
+    if (isModifierCode(e.keycode)) heldModifierCodes.add(e.keycode)
     const res = hotkeys?.handleKeyDown(e)
     if (res?.type === 'capture') {
       if (captureTarget) {
@@ -222,6 +252,7 @@ function startHook() {
   })
 
   uIOhook.on('keyup', (e) => {
+    heldModifierCodes.delete(e.keycode)
     const wasConsumed = hotkeys?.isConsumed(e.keycode)
     hotkeys?.handleKeyUp(e)
     if (wasConsumed) return
@@ -343,6 +374,21 @@ const registerIpc = () => {
   ipcMain.handle('records:remove-event', (_e, id, index) => (isId(id) ? records?.removeEvent(id, toInt(index, -1)) : false))
   ipcMain.handle('records:list-events', (_e, id) => (isId(id) ? records?.listEvents(id) : { events: [], total: 0 }))
   ipcMain.handle('records:remove', (_e, id) => (isId(id) ? records?.remove(id) : false))
+  ipcMain.handle('records:clear', async () => {
+    const count = records?.count() ?? 0
+    if (!count) return { ok: false, reason: 'empty' }
+    const res = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      buttons: [mt('dialog.clearAllConfirm'), mt('dialog.cancel')],
+      defaultId: 1,
+      cancelId: 1,
+      title: mt('dialog.clearAllTitle'),
+      message: mt('dialog.clearAllMessage', { count }),
+      detail: mt('dialog.clearAllDetail'),
+    })
+    if (res.response !== 0) return { ok: false, reason: 'canceled' }
+    return { ok: true, count: records.clearAll() }
+  })
   ipcMain.handle('records:export', (_e, id) => (isId(id) ? records?.exportOne(mainWindow, id) : { ok: false, reason: 'invalid' }))
   ipcMain.handle('records:export-all', () => records?.exportAll(mainWindow))
   ipcMain.handle('records:import', () => records?.importOne(mainWindow))
@@ -382,6 +428,7 @@ app.whenReady().then(() => {
 
   hotkeys = createHotkeyManager({
     getBindings: () => getSettings().hotkeys,
+    getHeldModifiers: heldFlags,
     onCaptured: (combo) => log.info('capture combo', combo),
   })
 
@@ -466,8 +513,15 @@ app.on('before-quit', () => {
 })
 
 function statusText() {
-  if (lastMarcoStatus.recording) return '錄製中'
-  if (lastMarcoStatus.playing) return lastMarcoStatus.countdown > 0 ? `回放倒數 ${lastMarcoStatus.countdown}s` : `回放中 ${lastMarcoStatus.round}/${lastMarcoStatus.repeat || '∞'}`
-  if (lastAutoClickStatus.running) return '連點中'
-  return '待機'
+  if (lastMarcoStatus.recording) return mt('status.recording')
+  if (lastMarcoStatus.playing) {
+    return lastMarcoStatus.countdown > 0
+      ? mt('status.playCountdown', { n: lastMarcoStatus.countdown })
+      : mt('status.playing', {
+          round: lastMarcoStatus.round,
+          total: lastMarcoStatus.repeat || mt('status.infinite'),
+        })
+  }
+  if (lastAutoClickStatus.running) return mt('status.clicking')
+  return mt('status.idle')
 }

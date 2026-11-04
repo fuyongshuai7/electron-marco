@@ -1,15 +1,15 @@
 <template>
   <section class="view">
     <header class="view-header">
-      <h1>自動連點</h1>
-      <p>設定點擊間隔與按鍵，在指定位置連續點擊。</p>
+      <h1>{{ $t('auto.title') }}</h1>
+      <p>{{ $t('auto.subtitle') }}</p>
     </header>
 
     <div class="panel">
-      <h2 class="panel-title">連點設定</h2>
+      <h2 class="panel-title">{{ $t('auto.configTitle') }}</h2>
 
       <div class="field">
-        <label>點擊間隔（毫秒）</label>
+        <label>{{ $t('auto.interval') }}</label>
         <div class="stepper" :class="{ disabled: state.autoClickRunning }">
           <input
             v-model.number="form.interval"
@@ -21,12 +21,12 @@
             @blur="sync"
           />
           <div class="stepper-actions">
-            <button type="button" :disabled="state.autoClickRunning" aria-label="增加" @click="stepBy(10)">
+            <button type="button" :disabled="state.autoClickRunning" :aria-label="$t('auto.increase')" @click="stepBy(10)">
               <svg viewBox="0 0 10 6" aria-hidden="true">
                 <path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button type="button" :disabled="state.autoClickRunning" aria-label="減少" @click="stepBy(-10)">
+            <button type="button" :disabled="state.autoClickRunning" :aria-label="$t('auto.decrease')" @click="stepBy(-10)">
               <svg viewBox="0 0 10 6" aria-hidden="true">
                 <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
@@ -36,16 +36,16 @@
       </div>
 
       <div class="field">
-        <label>時間抖動（%）</label>
+        <label>{{ $t('auto.jitter') }}</label>
         <div class="row">
           <input v-model.number="form.jitter" class="range" type="range" min="0" max="80" step="1" @change="sync" />
           <span class="range-value">{{ form.jitter }}%</span>
         </div>
-        <p class="hint">每次點擊的間隔會隨機加減這個比例，避免節奏完全一致。</p>
+        <p class="hint">{{ $t('auto.jitterHint') }}</p>
       </div>
 
       <div class="field">
-        <label>滑鼠按鍵</label>
+        <label>{{ $t('auto.mouseButton') }}</label>
         <div class="segmented">
           <button
             v-for="b in buttons"
@@ -61,7 +61,7 @@
       </div>
 
       <div class="field">
-        <label>按住時長（毫秒）</label>
+        <label>{{ $t('auto.pressDuration') }}</label>
         <div class="row">
           <input
             v-model.number="form.pressDuration"
@@ -72,7 +72,7 @@
             step="10"
             @change="sync"
           />
-          <span class="hint-inline">設為 0 表示按下後立即放開</span>
+          <span class="hint-inline">{{ $t('auto.pressHint') }}</span>
         </div>
       </div>
 
@@ -80,64 +80,64 @@
         <label class="switch">
           <input type="checkbox" v-model="form.double" @change="sync" />
           <span class="switch-track"></span>
-          <span class="switch-label">雙擊模式</span>
+          <span class="switch-label">{{ $t('auto.double') }}</span>
         </label>
-        <p class="hint">勾選後每次觸發為一次雙擊（此時「按住時長」不適用）。</p>
+        <p class="hint">{{ $t('auto.doubleHint') }}</p>
       </div>
 
       <div class="field">
-        <label>點擊位置</label>
+        <label>{{ $t('auto.position') }}</label>
         <div class="segmented">
           <button class="seg-item" :class="{ active: form.mode === 'cursor' }" :disabled="state.autoClickRunning" @click="setMode('cursor')">
-            滑鼠目前位置
+            {{ $t('auto.posCursor') }}
           </button>
           <button class="seg-item" :class="{ active: form.mode === 'fixed' }" :disabled="state.autoClickRunning" @click="setMode('fixed')">
-            固定座標
+            {{ $t('auto.posFixed') }}
           </button>
         </div>
 
         <div v-if="form.mode === 'fixed'" class="row coord-row">
-          <span class="coord">X {{ form.x }} · Y {{ form.y }}</span>
+          <span class="coord">{{ $t('auto.coord', { x: form.x, y: form.y }) }}</span>
           <button class="btn btn-ghost btn-sm" :disabled="state.autoClickRunning || picking" @click="pickPosition">
-            {{ picking ? `放開滑鼠… ${pickLeft}s` : '取用目前位置' }}
+            {{ picking ? $t('auto.picking', { n: pickLeft }) : $t('auto.pick') }}
           </button>
         </div>
       </div>
 
       <div class="field">
-        <label>停止條件（皆為 0 表示不限制）</label>
+        <label>{{ $t('auto.stopCond') }}</label>
         <div class="row wrap">
-          <span class="mini-label">點擊次數</span>
+          <span class="mini-label">{{ $t('auto.maxClicks') }}</span>
           <input v-model.number="form.maxClicks" class="num-input" type="number" min="0" step="1" @change="sync" />
-          <span class="mini-label">持續時間（毫秒）</span>
+          <span class="mini-label">{{ $t('auto.maxDuration') }}</span>
           <input v-model.number="form.maxDurationMs" class="num-input wide" type="number" min="0" step="1000" @change="sync" />
         </div>
       </div>
 
       <div class="actions">
-        <button class="btn" :disabled="state.autoClickRunning" @click="start">開始連點</button>
-        <button class="btn btn-danger" :disabled="!state.autoClickRunning" @click="stop">停止連點</button>
+        <button class="btn" :disabled="state.autoClickRunning" @click="start">{{ $t('auto.start') }}</button>
+        <button class="btn btn-danger" :disabled="!state.autoClickRunning" @click="stop">{{ $t('auto.stop') }}</button>
       </div>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">快捷鍵</h2>
+      <h2 class="panel-title">{{ $t('auto.hotkeysTitle') }}</h2>
       <ul class="hotkey-list">
         <li>
           <kbd class="kbd-wide">{{ comboOf('startAutoClick') }}</kbd>
           <div class="hotkey-info">
-            <span class="hotkey-name">開始連點</span>
-            <span class="hotkey-desc">以目前設定的間隔與按鍵啟動</span>
+            <span class="hotkey-name">{{ $t('hotkeys.names.startAutoClick') }}</span>
+            <span class="hotkey-desc">{{ $t('auto.startDesc') }}</span>
           </div>
-          <button class="btn btn-ghost" :disabled="state.autoClickRunning" @click="start">開始</button>
+          <button class="btn btn-ghost" :disabled="state.autoClickRunning" @click="start">{{ $t('auto.start') }}</button>
         </li>
         <li>
           <kbd class="kbd-wide">{{ comboOf('stopAutoClick') }}</kbd>
           <div class="hotkey-info">
-            <span class="hotkey-name">停止連點</span>
-            <span class="hotkey-desc">立即中斷目前連點</span>
+            <span class="hotkey-name">{{ $t('hotkeys.names.stopAutoClick') }}</span>
+            <span class="hotkey-desc">{{ $t('auto.stopDesc') }}</span>
           </div>
-          <button class="btn btn-ghost btn-danger" :disabled="!state.autoClickRunning" @click="stop">停止</button>
+          <button class="btn btn-ghost btn-danger" :disabled="!state.autoClickRunning" @click="stop">{{ $t('auto.stop') }}</button>
         </li>
       </ul>
     </div>
@@ -147,8 +147,8 @@
       <span>
         {{
           state.autoClickRunning
-            ? `連點中 · 每 ${form.interval} ms 點擊一次 · 已點擊 ${state.autoClickClicked} 次`
-            : stopReasonText || '未啟動'
+            ? $t('auto.running', { interval: form.interval, count: state.autoClickClicked })
+            : stopReasonText || $t('auto.notRunning')
         }}
       </span>
     </div>
@@ -157,7 +157,10 @@
 
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { state } from '../store'
+
+const { t } = useI18n()
 
 const form = reactive({
   interval: 100,
@@ -181,11 +184,11 @@ watch(
   { immediate: true }
 )
 
-const buttons = [
-  { label: '左鍵', value: 'left' },
-  { label: '右鍵', value: 'right' },
-  { label: '中鍵', value: 'middle' },
-]
+const buttons = computed(() => [
+  { label: t('auto.btnLeft'), value: 'left' },
+  { label: t('auto.btnRight'), value: 'right' },
+  { label: t('auto.btnMiddle'), value: 'middle' },
+])
 
 const api = () => window.electronApi?.autoClick
 
@@ -222,7 +225,7 @@ const stepBy = (delta) => {
 }
 
 const comboText = (combo) => {
-  if (!combo) return '未設定'
+  if (!combo) return t('hotkeys.notSet')
   const parts = []
   if (combo.ctrl) parts.push('Ctrl')
   if (combo.alt) parts.push('Alt')
@@ -237,11 +240,11 @@ const comboOf = (action) => comboText(state.settings?.hotkeys?.[action])
 const stopReasonText = computed(() => {
   switch (state.autoClickReason) {
     case 'clicks':
-      return '已達到點擊次數上限'
+      return t('auto.reasonClicks')
     case 'duration':
-      return '已達到持續時間上限'
+      return t('auto.reasonDuration')
     case 'error':
-      return '執行失敗並已停止'
+      return t('auto.reasonError')
     default:
       return ''
   }
