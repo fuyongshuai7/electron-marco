@@ -47,6 +47,7 @@
         <div class="sidebar-footer">
           <span class="dot" :class="dotClass"></span>
           <span class="footer-text">{{ statusText }}</span>
+          <span v-if="state.appVersion" class="footer-version">v{{ state.appVersion }}</span>
         </div>
       </aside>
 
@@ -56,6 +57,8 @@
         <SettingsView v-show="state.activeMenu === 'settings'" />
       </main>
     </div>
+
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -65,6 +68,7 @@ import { useI18n } from 'vue-i18n'
 import RecordView from './views/RecordView.vue'
 import AutoClickView from './views/AutoClickView.vue'
 import SettingsView from './views/SettingsView.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
 import { state } from './store'
 import { applyLocale } from './i18n'
 
@@ -153,6 +157,10 @@ onMounted(() => {
   api.app?.onHookStatus?.((payload) => {
     state.hookReady = !!payload?.ready
     state.hookNeedPermission = !!payload?.needPermission
+  })
+
+  api.app?.getVersion?.().then((v) => {
+    if (v) state.appVersion = v
   })
 
   const applyRecords = (payload) => {
@@ -351,6 +359,14 @@ const close = () => window.electronApi?.window.close()
   background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
   color: var(--text-dim);
+}
+
+.footer-version {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  letter-spacing: 0.3px;
 }
 
 .dot {

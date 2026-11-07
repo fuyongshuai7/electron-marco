@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain, shell, systemPreferences } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, shell, systemPreferences } from 'electron'
 import path from 'node:path'
 import started from 'electron-squirrel-startup'
 import { uIOhook } from 'uiohook-napi'
@@ -124,6 +124,31 @@ const toggleWindow = () => {
   else showWindow()
 }
 
+/* ---------- 自繪確認對話框（取代系統 showMessageBox） ---------- */
+let dialogSeq = 0
+const pendingDialogs = new Map()
+function askRenderer(win, payload) {
+  return new Promise((resolve) => {
+    const id = ++dialogSeq
+    const timer = setTimeout(() => {
+      if (pendingDialogs.has(id)) {
+        pendingDialogs.delete(id)
+        resolve(payload.cancelId)
+      }
+    }, 60000)
+    pendingDialogs.set(id, (index) => {
+      clearTimeout(timer)
+      resolve(index)
+    })
+    if (win && !win.isDestroyed()) win.webContents.send('dialog:ask', { id, ...payload })
+    else {
+      clearTimeout(timer)
+      pendingDialogs.delete(id)
+      resolve(payload.cancelId)
+    }
+  })
+}
+
 /* ---------- 結束流程：先處理未儲存的錄製 ---------- */
 async function requestClose({ force = false } = {}) {
   if (isQuitting) return
@@ -132,17 +157,21 @@ async function requestClose({ force = false } = {}) {
   try {
     const unsaved = records?.hasUnsaved() || 0
     if (unsaved > 0) {
-      const res = await dialog.showMessageBox(mainWindow, {
-        type: 'warning',
-        buttons: [mt('dialog.saveAndQuit'), mt('dialog.quitWithoutSave'), mt('dialog.cancel')],
+      const res = await askRenderer(mainWindow, {
+        kind: 'warning',
+        buttons: [
+          { label: mt('dialog.saveAndQuit'), kind: 'primary' },
+          { label: mt('dialog.quitWithoutSave'), kind: 'danger' },
+          { label: mt('dialog.cancel'), kind: 'ghost' },
+        ],
         defaultId: 0,
         cancelId: 2,
         title: mt('dialog.unsavedTitle'),
         message: mt('dialog.unsavedMessage', { count: unsaved }),
         detail: mt('dialog.unsavedDetail'),
       })
-      if (res.response === 2) return
-      if (res.response === 0) records?.saveAll()
+      if (res === 2) return
+      if (res === 0) records?.saveAll()
     }
 
     const settings = getSettings()
@@ -377,17 +406,27 @@ const registerIpc = () => {
   ipcMain.handle('records:clear', async () => {
     const count = records?.count() ?? 0
     if (!count) return { ok: false, reason: 'empty' }
-    const res = await dialog.showMessageBox(mainWindow, {
-      type: 'warning',
-      buttons: [mt('dialog.clearAllConfirm'), mt('dialog.cancel')],
+    const idx = await askRenderer(mainWindow, {
+      kind: 'warning',
+      buttons: [
+        { label: mt('dialog.clearAllConfirm'), kind: 'danger' },
+        { label: mt('dialog.cancel'), kind: 'ghost' },
+      ],
       defaultId: 1,
       cancelId: 1,
       title: mt('dialog.clearAllTitle'),
       message: mt('dialog.clearAllMessage', { count }),
       detail: mt('dialog.clearAllDetail'),
     })
-    if (res.response !== 0) return { ok: false, reason: 'canceled' }
+    if (idx !== 0) return { ok: false, reason: 'canceled' }
     return { ok: true, count: records.clearAll() }
+  })
+  ipcMain.handle('dialog:answer', (_e, id, index) => {
+    const resolve = pendingDialogs.get(id)
+    if (!resolve) return false
+    pendingDialogs.delete(id)
+    resolve(index)
+    return true
   })
   ipcMain.handle('records:export', (_e, id) => (isId(id) ? records?.exportOne(mainWindow, id) : { ok: false, reason: 'invalid' }))
   ipcMain.handle('records:export-all', () => records?.exportAll(mainWindow))
@@ -400,6 +439,7 @@ const registerIpc = () => {
   ipcMain.on('window:toggle', () => toggleWindow())
   ipcMain.on('window:close', () => requestClose())
   ipcMain.on('app:quit', () => requestClose({ force: true }))
+  ipcMain.handle('app:get-version', () => app.getVersion())
   ipcMain.handle('app:pick-folder', async () => {
     const folder = await pickFolder(mainWindow)
     if (!folder) return null

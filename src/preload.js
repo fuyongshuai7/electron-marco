@@ -36,6 +36,8 @@ const INVOKE_CHANNELS = new Set([
   'records:open-folder',
   'app:pick-folder',
   'app:open-folder',
+  'app:get-version',
+  'dialog:answer',
 ])
 
 const SEND_CHANNELS = new Set(['window:minimize', 'window:hide', 'window:toggle', 'window:close', 'app:quit'])
@@ -47,6 +49,7 @@ const listenChannels = new Set([
   'settings:changed',
   'hotkeys:captured',
   'hook:status',
+  'dialog:ask',
 ])
 
 const subscribe = (channel, callback) => {
@@ -93,6 +96,7 @@ contextBridge.exposeInMainWorld('electronApi', {
     quit: () => sendSafe('app:quit'),
     pickFolder: () => invokeSafe('app:pick-folder'),
     openFolder: (target) => invokeSafe('app:open-folder', target),
+    getVersion: () => invokeSafe('app:get-version'),
     onHookStatus: (cb) => subscribe('hook:status', cb),
   },
   records: {
@@ -125,5 +129,9 @@ contextBridge.exposeInMainWorld('electronApi', {
     stop: () => invokeSafe('autoclick:stop'),
     getPosition: () => invokeSafe('autoclick:get-pos'),
     onStatus: (cb) => subscribe('autoclick:status', cb),
+  },
+  dialog: {
+    onAsk: (cb) => subscribe('dialog:ask', cb),
+    answer: (id, index) => invokeSafe('dialog:answer', id, index),
   },
 })

@@ -59,12 +59,15 @@
 }
 
 .btn-danger {
+  background: rgba(255, 93, 115, 0.12);
+  border-color: rgba(255, 93, 115, 0.4);
   color: var(--danger);
 }
 
 .btn-danger:hover:not(:disabled) {
+  background: rgba(255, 93, 115, 0.2);
   border-color: var(--danger);
-  background: rgba(220, 38, 38, 0.12);
+  color: #ff8095;
 }
 
 kbd {
