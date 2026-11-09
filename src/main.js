@@ -43,6 +43,10 @@ let uiohookReady = false
 let lastMarcoStatus = {}
 let lastAutoClickStatus = {}
 
+// 迷你懸浮窗尺寸（完整模式寬度 1000 由 createWindow 使用）
+const MINI_W = 420
+const MINI_H = 64
+
 const hasWindow = () => mainWindow && !mainWindow.isDestroyed()
 
 const send = (channel) => (payload, force = true) => {
@@ -51,14 +55,15 @@ const send = (channel) => (payload, force = true) => {
 
 const createWindow = () => {
   const settings = getSettings()
+  const isMini = settings.window.mode === 'mini'
 
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: settings.window.height,
-    resizable: true,
-    minWidth: 1000,
-    maxWidth: 1000,
-    minHeight: 460,
+    width: isMini ? MINI_W : 1000,
+    height: isMini ? MINI_H : settings.window.height,
+    resizable: !isMini,
+    minWidth: isMini ? MINI_W : 1000,
+    maxWidth: isMini ? MINI_W : 1000,
+    minHeight: isMini ? MINI_H : 460,
     maximizable: false,
     fullscreenable: false,
     frame: false,
@@ -75,6 +80,13 @@ const createWindow = () => {
       webSecurity: true,
     },
   })
+
+  if (isMini) {
+    const { miniX, miniY } = settings.window
+    if (miniX != null && miniY != null) mainWindow.setPosition(miniX, miniY)
+    else mainWindow.center()
+    mainWindow.setAlwaysOnTop(!!settings.window.pinned)
+  }
 
   mainWindow.webContents.once('did-finish-load', () => {
     marco?.emit()
@@ -94,6 +106,8 @@ const createWindow = () => {
 
   mainWindow.on('resize', () => {
     if (!hasWindow()) return
+    // 迷你模式尺寸鎖死，程式化 setSize 也會觸發 resize，避免把迷你高度寫進 height
+    if (getSettings().window.mode === 'mini') return
     const [, height] = mainWindow.getSize()
     updateSettings({ window: { height } })
   })
@@ -122,6 +136,55 @@ const toggleWindow = () => {
   if (!hasWindow()) return
   if (mainWindow.isVisible() && mainWindow.isFocused()) mainWindow.hide()
   else showWindow()
+}
+
+/* ---------- 精簡模式 / 迷你懸浮窗 ---------- */
+function applyWindowMode(mode = getSettings().window.mode) {
+  if (!hasWindow()) return
+  if (mode === 'mini') {
+    mainWindow.setMinimumSize(MINI_W, MINI_H)
+    mainWindow.setMaximumSize(MINI_W, MINI_H)
+    mainWindow.setSize(MINI_W, MINI_H)
+    mainWindow.setResizable(false)
+    const { miniX, miniY } = getSettings().window
+    if (miniX != null && miniY != null) mainWindow.setPosition(miniX, miniY)
+    else mainWindow.center()
+    mainWindow.setAlwaysOnTop(!!getSettings().window.pinned)
+  } else {
+    mainWindow.setResizable(true)
+    mainWindow.setMinimumSize(1000, 460)
+    mainWindow.setMaximumSize(1000, 4000)
+    mainWindow.setSize(1000, getSettings().window.height)
+    mainWindow.setAlwaysOnTop(false)
+  }
+}
+
+function setMode(mode) {
+  if (!hasWindow()) return
+  const prev = getSettings().window.mode
+  const target = mode === 'mini' ? 'mini' : 'full'
+  if (prev === target) return
+  if (prev === 'mini') {
+    const [x, y] = mainWindow.getPosition()
+    updateSettings({ window: { mode: target, miniX: x, miniY: y } })
+  } else {
+    updateSettings({ window: { mode: target } })
+  }
+  applyWindowMode(target)
+  send('settings:changed')(getSettings())
+  tray?.refresh()
+}
+
+function toggleMiniMode() {
+  setMode(getSettings().window.mode === 'mini' ? 'full' : 'mini')
+}
+
+function setPinned(on) {
+  updateSettings({ window: { pinned: !!on } })
+  if (getSettings().window.mode === 'mini' && hasWindow()) {
+    mainWindow.setAlwaysOnTop(!!on)
+  }
+  send('settings:changed')(getSettings())
 }
 
 /* ---------- 自繪確認對話框（取代系統 showMessageBox） ---------- */
@@ -226,6 +289,7 @@ const HOTKEY_ACTIONS = {
   startAutoClick: () => autoClick?.start(getSettings().autoClick),
   stopAutoClick: () => autoClick?.stop(),
   emergencyStop: () => emergencyStop(),
+  toggleMini: () => toggleMiniMode(),
 }
 
 function emergencyStop() {
@@ -433,11 +497,19 @@ const registerIpc = () => {
   ipcMain.handle('records:import', () => records?.importOne(mainWindow))
   ipcMain.handle('records:open-folder', () => records?.openFolder())
 
+  // 錄製 / 回放按鈕（迷你窗用，快捷鍵與按鈕共用同一主程序邏輯）
+  ipcMain.handle('marco:start-record', () => marco?.startRecord())
+  ipcMain.handle('marco:stop-record', () => marco?.stopRecord())
+  ipcMain.handle('marco:play', () => marco?.play())
+  ipcMain.handle('marco:stop-play', () => marco?.stopPlay())
+
   // 視窗 / 程式
   ipcMain.on('window:minimize', () => hasWindow() && mainWindow.minimize())
   ipcMain.on('window:hide', () => hasWindow() && tray && mainWindow.hide())
   ipcMain.on('window:toggle', () => toggleWindow())
   ipcMain.on('window:close', () => requestClose())
+  ipcMain.handle('window:set-mode', (_e, mode) => setMode(mode))
+  ipcMain.handle('window:toggle-pin', () => setPinned(!getSettings().window.pinned))
   ipcMain.on('app:quit', () => requestClose({ force: true }))
   ipcMain.handle('app:get-version', () => app.getVersion())
   ipcMain.handle('app:pick-folder', async () => {
@@ -518,7 +590,9 @@ app.whenReady().then(() => {
 
   tray = createTray({
     getStatusText: () => statusText(),
+    getMode: () => getSettings().window.mode,
     onToggleWindow: toggleWindow,
+    onToggleMini: toggleMiniMode,
     onEmergencyStop: emergencyStop,
     onQuit: () => requestClose({ force: true }),
   })

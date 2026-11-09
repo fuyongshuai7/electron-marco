@@ -163,6 +163,7 @@ const HOTKEY_ACTIONS = [
   'startAutoClick',
   'stopAutoClick',
   'emergencyStop',
+  'toggleMini',
 ]
 
 const DEFAULT_COMBOS = {
@@ -173,6 +174,7 @@ const DEFAULT_COMBOS = {
   startAutoClick: ['Ctrl', 'Alt', 'F10'],
   stopAutoClick: ['Ctrl', 'Alt', 'F11'],
   emergencyStop: ['Ctrl', 'Alt', 'F12'],
+  toggleMini: ['Ctrl', 'Shift', 'M'],
 }
 
 const comboText = (combo) => {

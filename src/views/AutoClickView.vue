@@ -36,6 +36,35 @@
       </div>
 
       <div class="field">
+        <label>{{ $t('auto.countdown') }}</label>
+        <div class="stepper" :class="{ disabled: state.autoClickRunning }">
+          <input
+            v-model.number="form.countdown"
+            type="number"
+            min="0"
+            max="30"
+            step="1"
+            :disabled="state.autoClickRunning"
+            @change="sync"
+            @blur="sync"
+          />
+          <div class="stepper-actions">
+            <button type="button" :disabled="state.autoClickRunning" :aria-label="$t('auto.increase')" @click="stepCountdown(1)">
+              <svg viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button type="button" :disabled="state.autoClickRunning" :aria-label="$t('auto.decrease')" @click="stepCountdown(-1)">
+              <svg viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <p class="hint">{{ $t('auto.countdownHint') }}</p>
+      </div>
+
+      <div class="field">
         <label>{{ $t('auto.jitter') }}</label>
         <div class="row">
           <input v-model.number="form.jitter" class="range" type="range" min="0" max="80" step="1" @change="sync" />
@@ -146,9 +175,11 @@
       <span class="dot" :class="state.autoClickRunning ? 'dot-click' : 'dot-idle'"></span>
       <span>
         {{
-          state.autoClickRunning
-            ? $t('auto.running', { interval: form.interval, count: state.autoClickClicked })
-            : stopReasonText || $t('auto.notRunning')
+          state.autoClickCountdown > 0
+            ? $t('auto.countdownText', { n: state.autoClickCountdown })
+            : state.autoClickRunning
+              ? $t('auto.running', { interval: form.interval, count: state.autoClickClicked })
+              : stopReasonText || $t('auto.notRunning')
         }}
       </span>
     </div>
@@ -173,6 +204,7 @@ const form = reactive({
   y: 0,
   maxClicks: 0,
   maxDurationMs: 0,
+  countdown: 0,
 })
 
 watch(
@@ -204,6 +236,7 @@ const sync = () => {
     y: Math.round(Number(form.y) || 0),
     maxClicks: Math.max(0, Math.round(Number(form.maxClicks) || 0)),
     maxDurationMs: Math.max(0, Math.round(Number(form.maxDurationMs) || 0)),
+    countdown: Math.min(30, Math.max(0, Math.round(Number(form.countdown) || 0))),
   }
   Object.assign(form, patch)
   api()?.configure?.(patch)
@@ -221,6 +254,11 @@ const setMode = (v) => {
 
 const stepBy = (delta) => {
   form.interval = Math.max(10, (Number(form.interval) || 0) + delta)
+  sync()
+}
+
+const stepCountdown = (delta) => {
+  form.countdown = Math.max(0, (Number(form.countdown) || 0) + delta)
   sync()
 }
 

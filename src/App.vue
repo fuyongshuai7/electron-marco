@@ -1,5 +1,7 @@
 <template>
-  <div class="window">
+  <MiniView v-if="state.mode === 'mini'" />
+
+  <div v-else class="window">
     <header class="titlebar">
       <div class="titlebar-brand">
         <div class="brand-logo">M</div>
@@ -10,6 +12,17 @@
       </div>
 
       <div class="window-controls">
+        <button class="win-btn" :title="$t('win.mini')" @click="toMini">
+          <svg viewBox="0 0 12 12" aria-hidden="true">
+            <path
+              d="M4 8L2 10M2 7v3h3M8 4l2-2M10 5V2H7"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
         <button class="win-btn" :title="$t('win.minimize')" @click="minimize">
           <svg viewBox="0 0 12 12" aria-hidden="true">
             <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
@@ -57,9 +70,9 @@
         <SettingsView v-show="state.activeMenu === 'settings'" />
       </main>
     </div>
-
-    <ConfirmDialog />
   </div>
+
+  <ConfirmDialog />
 </template>
 
 <script setup>
@@ -68,6 +81,7 @@ import { useI18n } from 'vue-i18n'
 import RecordView from './views/RecordView.vue'
 import AutoClickView from './views/AutoClickView.vue'
 import SettingsView from './views/SettingsView.vue'
+import MiniView from './views/MiniView.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { state } from './store'
 import { applyLocale } from './i18n'
@@ -139,20 +153,11 @@ onMounted(() => {
     state.autoClickRunning = s.running
     state.autoClickClicked = s.clicked || 0
     state.autoClickReason = s.reason || null
+    state.autoClickCountdown = s.countdown || 0
   })
 
-  api.settings?.onChange?.((next) => {
-    if (next) {
-      state.settings = next
-      applyLocale(next.ui?.locale)
-    }
-  })
-  api.settings?.get?.().then((next) => {
-    if (next) {
-      state.settings = next
-      applyLocale(next.ui?.locale)
-    }
-  })
+  api.settings?.onChange?.((next) => syncSettings(next))
+  api.settings?.get?.().then((next) => syncSettings(next))
 
   api.app?.onHookStatus?.((payload) => {
     state.hookReady = !!payload?.ready
@@ -181,6 +186,15 @@ onBeforeUnmount(() => {
 
 const minimize = () => window.electronApi?.window.minimize()
 const close = () => window.electronApi?.window.close()
+const toMini = () => window.electronApi?.window.setMode('mini')
+
+const syncSettings = (next) => {
+  if (!next) return
+  state.settings = next
+  state.mode = next.window?.mode === 'mini' ? 'mini' : 'full'
+  state.pinned = !!next.window?.pinned
+  applyLocale(next.ui?.locale)
+}
 </script>
 
 <style scoped>

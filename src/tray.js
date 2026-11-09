@@ -24,7 +24,7 @@ function resolveIcon() {
   return image.isEmpty() ? null : image
 }
 
-export function createTray({ getStatusText, onToggleWindow, onEmergencyStop, onQuit }) {
+export function createTray({ getStatusText, getMode, onToggleWindow, onToggleMini, onEmergencyStop, onQuit }) {
   const image = resolveIcon()
   if (!image) {
     log.warn('找不到托盤圖示，已略過托盤建立')
@@ -36,10 +36,12 @@ export function createTray({ getStatusText, onToggleWindow, onEmergencyStop, onQ
 
   const build = () => {
     const status = getStatusText?.() || mt('status.idle')
+    const isMini = getMode?.() === 'mini'
     return Menu.buildFromTemplate([
       { label: mt('tray.status', { status }), enabled: false },
       { type: 'separator' },
       { label: mt('tray.toggleWindow'), click: () => onToggleWindow?.() },
+      { label: isMini ? mt('tray.toFull') : mt('tray.toMini'), click: () => onToggleMini?.() },
       { label: mt('tray.emergencyStop'), click: () => onEmergencyStop?.() },
       { type: 'separator' },
       { label: mt('tray.quit'), click: () => onQuit?.() },

@@ -9,6 +9,10 @@ const INVOKE_CHANNELS = new Set([
   'hotkeys:capture-cancel',
   'hotkeys:set',
   'marco:set-options',
+  'marco:start-record',
+  'marco:stop-record',
+  'marco:play',
+  'marco:stop-play',
   'autoclick:configure',
   'autoclick:start',
   'autoclick:stop',
@@ -37,6 +41,8 @@ const INVOKE_CHANNELS = new Set([
   'app:pick-folder',
   'app:open-folder',
   'app:get-version',
+  'window:set-mode',
+  'window:toggle-pin',
   'dialog:answer',
 ])
 
@@ -85,12 +91,18 @@ contextBridge.exposeInMainWorld('electronApi', {
   marco: {
     onStatus: (cb) => subscribe('marco:status', cb),
     setOptions: (patch) => invokeSafe('marco:set-options', patch),
+    startRecord: () => invokeSafe('marco:start-record'),
+    stopRecord: () => invokeSafe('marco:stop-record'),
+    play: () => invokeSafe('marco:play'),
+    stopPlay: () => invokeSafe('marco:stop-play'),
   },
   window: {
     minimize: () => sendSafe('window:minimize'),
     hide: () => sendSafe('window:hide'),
     toggle: () => sendSafe('window:toggle'),
     close: () => sendSafe('window:close'),
+    setMode: (mode) => invokeSafe('window:set-mode', mode),
+    togglePin: () => invokeSafe('window:toggle-pin'),
   },
   app: {
     quit: () => sendSafe('app:quit'),

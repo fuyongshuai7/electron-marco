@@ -12,7 +12,9 @@
   },
   "win": {
     "minimize": "Minimize",
-    "close": "Close"
+    "close": "Close",
+    "mini": "Compact mode",
+    "expand": "Expand"
   },
   "status": {
     "idle": "Idle",
@@ -32,7 +34,8 @@
       "stopPlay": "Stop playback",
       "startAutoClick": "Start auto click",
       "stopAutoClick": "Stop auto click",
-      "emergencyStop": "Emergency stop"
+      "emergencyStop": "Emergency stop",
+      "toggleMini": "Toggle mini mode"
     },
     "descs": {
       "startRecord": "Clear old events and start capturing keyboard & mouse",
@@ -41,7 +44,8 @@
       "stopPlay": "Interrupt the running playback immediately",
       "startAutoClick": "Start with the current interval and button",
       "stopAutoClick": "Interrupt auto click immediately",
-      "emergencyStop": "Stop recording / playback / auto click, release all keys, discard the recording"
+      "emergencyStop": "Stop recording / playback / auto click, release all keys, discard the recording",
+      "toggleMini": "Switch between the full window and the mini floating window"
     }
   },
   "record": {
@@ -173,6 +177,9 @@
     "reasonError": "Stopped after an error",
     "increase": "Increase",
     "decrease": "Decrease",
+    "countdown": "Start countdown (s)",
+    "countdownHint": "Count down before starting, giving you time to move the mouse into position. 0 starts immediately.",
+    "countdownText": "Starting in {n}s",
     "btnLeft": "Left",
     "btnRight": "Right",
     "btnMiddle": "Middle"
@@ -213,8 +220,15 @@
   "tray": {
     "status": "Status: {status}",
     "toggleWindow": "Show / Hide window",
+    "toMini": "Toggle mini mode",
+    "toFull": "Toggle full mode",
     "emergencyStop": "Emergency stop (record / play / click)",
     "quit": "Quit"
+  },
+  "mini": {
+    "pin": "Pin on top",
+    "unpin": "Unpin",
+    "countdown": "Click in {n}s"
   },
   "dialog": {
     "unsavedTitle": "Unsaved recordings",

@@ -12,6 +12,7 @@ export const state = reactive({
   autoClickRunning: false,
   autoClickClicked: 0,
   autoClickReason: null,
+  autoClickCountdown: 0,
   records: [],
   selectedId: null,
   folderPath: '',
@@ -21,6 +22,10 @@ export const state = reactive({
   hookReady: true,
   hookNeedPermission: false,
   appVersion: '',
+  // 介面形態：full 完整 / mini 迷你懸浮窗
+  mode: 'full',
+  // 迷你窗是否置頂（圖釘）
+  pinned: false,
   // 主程序觸發的確認對話框（自繪，取代系統 showMessageBox）
   dialog: {
     open: false,

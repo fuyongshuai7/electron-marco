@@ -26,6 +26,7 @@ export const DEFAULT_HOTKEYS = {
   startAutoClick: { ctrl: true, alt: true, shift: false, meta: false, key: 'F10' },
   stopAutoClick: { ctrl: true, alt: true, shift: false, meta: false, key: 'F11' },
   emergencyStop: { ctrl: true, alt: true, shift: false, meta: false, key: 'F12' },
+  toggleMini: { ctrl: true, shift: true, alt: false, meta: false, key: 'M' },
 }
 
 /** 舊版的預設組合鍵（Ctrl+Alt+字母），載入時自動升級成新的 F 鍵預設 */
@@ -47,6 +48,7 @@ export const HOTKEY_LABELS = {
   startAutoClick: '開始連點',
   stopAutoClick: '停止連點',
   emergencyStop: '緊急停止（全部）',
+  toggleMini: '切換精簡模式',
 }
 
 export const HOTKEY_ORDER = [
@@ -57,6 +59,7 @@ export const HOTKEY_ORDER = [
   'startAutoClick',
   'stopAutoClick',
   'emergencyStop',
+  'toggleMini',
 ]
 
 export const DEFAULTS = {
@@ -94,6 +97,13 @@ export const DEFAULTS = {
     closeToTray: true,
     launchAtLogin: false,
     height: 640,
+    // 介面形態：full（完整）或 mini（迷你懸浮窗）
+    mode: 'full',
+    // 迷你窗是否置頂（圖釘鎖定）
+    pinned: false,
+    // 迷你窗上次位置（null 表示尚未記錄，進入時置中）
+    miniX: null,
+    miniY: null,
   },
   ui: {
     // 介面語言：zh-Hant（繁體中文）或 en（English）
@@ -110,6 +120,8 @@ export const DEFAULTS = {
     y: 0,
     maxClicks: 0,
     maxDurationMs: 0,
+    // 連點起始倒數（秒）
+    countdown: 0,
   },
 }
 
@@ -190,6 +202,10 @@ const sanitize = (raw) => {
   w.closeToTray = !!w.closeToTray
   w.launchAtLogin = !!w.launchAtLogin
   w.height = Math.round(num(w.height, 460, 4000, DEFAULTS.window.height))
+  w.mode = w.mode === 'mini' ? 'mini' : 'full'
+  w.pinned = !!w.pinned
+  w.miniX = w.miniX == null ? null : Math.round(num(w.miniX, -100000, 100000, 0))
+  w.miniY = w.miniY == null ? null : Math.round(num(w.miniY, -100000, 100000, 0))
 
   const u = next.ui
   u.locale = u.locale === 'en' || u.locale === 'zh-Hant' ? u.locale : DEFAULTS.ui.locale
@@ -205,6 +221,7 @@ const sanitize = (raw) => {
   a.y = Math.round(num(a.y, -32768, 32768, 0))
   a.maxClicks = Math.round(num(a.maxClicks, 0, 1000000, 0))
   a.maxDurationMs = Math.round(num(a.maxDurationMs, 0, 86400000, 0))
+  a.countdown = Math.round(num(a.countdown, 0, 30, 0))
 
   return next
 }

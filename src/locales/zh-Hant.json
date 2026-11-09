@@ -12,7 +12,9 @@
   },
   "win": {
     "minimize": "最小化",
-    "close": "關閉"
+    "close": "關閉",
+    "mini": "精簡模式",
+    "expand": "展開"
   },
   "status": {
     "idle": "待機",
@@ -32,7 +34,8 @@
       "stopPlay": "停止回放",
       "startAutoClick": "開始連點",
       "stopAutoClick": "停止連點",
-      "emergencyStop": "緊急停止"
+      "emergencyStop": "緊急停止",
+      "toggleMini": "切換精簡模式"
     },
     "descs": {
       "startRecord": "清空舊記錄並開始捕捉鍵鼠操作",
@@ -41,7 +44,8 @@
       "stopPlay": "立即中斷目前正在進行的回放",
       "startAutoClick": "以目前設定的間隔與按鍵啟動",
       "stopAutoClick": "立即中斷目前連點",
-      "emergencyStop": "停止錄製 / 回放 / 連點並放開所有按鍵，且不保留錄製"
+      "emergencyStop": "停止錄製 / 回放 / 連點並放開所有按鍵，且不保留錄製",
+      "toggleMini": "在完整視窗與迷你懸浮窗之間切換"
     }
   },
   "record": {
@@ -173,6 +177,9 @@
     "reasonError": "執行失敗並已停止",
     "increase": "增加",
     "decrease": "減少",
+    "countdown": "起始倒數（秒）",
+    "countdownHint": "開始前倒數幾秒，方便把滑鼠移到目標位置；0 表示立即開始。",
+    "countdownText": "倒數 {n}s 後開始連點",
     "btnLeft": "左鍵",
     "btnRight": "右鍵",
     "btnMiddle": "中鍵"
@@ -213,8 +220,15 @@
   "tray": {
     "status": "狀態：{status}",
     "toggleWindow": "顯示 / 隱藏視窗",
+    "toMini": "切換精簡模式",
+    "toFull": "切換完整模式",
     "emergencyStop": "緊急停止（錄製 / 回放 / 連點）",
     "quit": "結束程式"
+  },
+  "mini": {
+    "pin": "置頂",
+    "unpin": "取消置頂",
+    "countdown": "連點倒數 {n}s"
   },
   "dialog": {
     "unsavedTitle": "尚有未儲存的錄製",

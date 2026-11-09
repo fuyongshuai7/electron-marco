@@ -12,6 +12,8 @@ const DEFAULT_OPTIONS = {
   y: 0,
   maxClicks: 0,
   maxDurationMs: 0,
+  // 起始倒數（秒），0 表示立即開始
+  countdown: 0,
 }
 
 const clampNum = (v, min, max, fallback) => {
@@ -23,6 +25,8 @@ const clampNum = (v, min, max, fallback) => {
 export function createAutoClick(notify = () => {}) {
   let timer = null
   let upTimer = null
+  let countdownTimer = null
+  let countdownLeft = 0
   let clicked = 0
   let startedAt = 0
   let pressedButton = null
@@ -30,7 +34,16 @@ export function createAutoClick(notify = () => {}) {
   let active = false
 
   const emit = (force = true) =>
-    notify({ running: active, clicked, reason, elapsed: active ? Date.now() - startedAt : 0 }, force)
+    notify(
+      {
+        running: active,
+        clicked,
+        reason,
+        elapsed: active && startedAt ? Date.now() - startedAt : 0,
+        countdown: Math.max(0, Math.ceil(countdownLeft)),
+      },
+      force
+    )
 
   const releaseButton = () => {
     if (!pressedButton) return
@@ -46,8 +59,11 @@ export function createAutoClick(notify = () => {}) {
     active = false
     if (timer) clearTimeout(timer)
     if (upTimer) clearTimeout(upTimer)
+    if (countdownTimer) clearInterval(countdownTimer)
     timer = null
     upTimer = null
+    countdownTimer = null
+    countdownLeft = 0
     releaseButton()
     if (stopReason) reason = stopReason
     emit()
@@ -67,6 +83,7 @@ export function createAutoClick(notify = () => {}) {
       y: Math.round(clampNum(o.y, -32768, 32768, 0)),
       maxClicks: Math.round(clampNum(o.maxClicks, 0, 1000000, 0)),
       maxDurationMs: Math.round(clampNum(o.maxDurationMs, 0, 86400000, 0)),
+      countdown: Math.round(clampNum(o.countdown, 0, 30, 0)),
     }
   }
 
@@ -135,10 +152,38 @@ export function createAutoClick(notify = () => {}) {
   function start(raw) {
     const options = normalize(raw)
     stop(null)
+
+    // 有起始倒數時先進入倒數階段，倒數結束才真正開始連點
+    if (options.countdown > 0) {
+      active = true
+      clicked = 0
+      reason = null
+      startedAt = 0
+      countdownLeft = options.countdown
+      emit()
+      countdownTimer = setInterval(() => {
+        countdownLeft -= 0.2
+        if (countdownLeft <= 0) {
+          clearInterval(countdownTimer)
+          countdownTimer = null
+          countdownLeft = 0
+          beginClick(options)
+          return
+        }
+        emit(false)
+      }, 200)
+      return true
+    }
+
+    return beginClick(options)
+  }
+
+  function beginClick(options) {
     active = true
     clicked = 0
     reason = null
     startedAt = Date.now()
+    countdownLeft = 0
     performClick(options)
     if (options.maxClicks > 0 && clicked >= options.maxClicks) {
       stop('clicks')
